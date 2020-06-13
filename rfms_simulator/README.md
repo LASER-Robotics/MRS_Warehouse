@@ -22,7 +22,7 @@ na simulação, e como o mundo é gerado. Para trajetória é utilizado o algori
 Para utilizar o pacote de exemplo basta executar o arquivo "example.py" com o Python 3 e o Memory Profiler:
 
 ```
-python3 -m memory_profiler
+python3 -m memory_profiler example.py
 ```
 
 Para executar os arquivos de teste:
@@ -36,5 +36,5 @@ Para executar o arquivo principal (Em desenv.):
 
 
 ```
-python3 -m main.py
+python3 -m memory_profiler main.py
 ```  
