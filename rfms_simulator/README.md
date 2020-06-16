@@ -36,3 +36,11 @@ Durante a simulação é possível modificar a localização do robô, o goal de
 - O _botão direito do mouse_ é responśavel por mudar a localização do goal
 
 - O _botão central (scroll) do mouse_ é responśavel por mudar a localização do robô
+
+Informações sobre a visualização:
+
+- A *área em cinza escuro* é o caminho que foi explorado pelo algorítmo
+- A *área em cinza claro* são os obstáculos (pods)
+- A *área em amarelo* é a zona de recarga
+- A *área em vermelho* é a zona de pick
+- A *área azul claro* é a zona de delivery
