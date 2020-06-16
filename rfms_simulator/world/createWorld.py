@@ -504,7 +504,7 @@ class WorldGrid:
         '''
         # THE DIRECTORY WERE THE ARROW IMG FILE IS LOCATED
         self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
-        # CREATE A DIC WITH THE ARROWS
+        # CREATE A GLOBAL DIC WITH THE ARROWS
         self.arrows = {}
         # LOAD THE ARROW IMG TO THE PYGAME MODULE
         self.arrow_img = pygame.image.load(os.path.join(self.icon_dir, 'arrow.png')).convert_alpha()
@@ -523,14 +523,17 @@ class WorldGrid:
             self.arrows[direction] = pygame.transform.rotate(self.arrow_img,
                                                              vec(direction).angle_to(vec(self.arrow_point_up)))
         
-    def draw_robot(self):
+    def draw_robot(self, start):
         '''
-        Draws the Robot in the Grid
+        Adjust the Robot Icon and draw in the Grid
 
         Returns:
 
-            An Robot in the Grid Cell
+            The Robot icon translated to the PyGame Library and Draw
+            at the specified START location
         '''
+        # SET THE START NODE
+        self.start = vec(start)
         # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
         self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
@@ -539,15 +542,22 @@ class WorldGrid:
         self.robot_img = pygame.transform.scale(self.robot_img, (50,50))
         # FILL THE IMAGE WITH THE BLEND MODULE
         self.robot_img.fill((0, 255, 0, 255), special_flags = pygame.BLEND_RGBA_MULT)
+        self.start_center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
+                             (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
+        screen.blit(self.robot_img,
+                    self.robot_img.get_rect(center=self.start_center))
 
-    def draw_goal(self):
+    def draw_goal(self, goal):
         '''
-        Draws the Goal in the Grid
+        Adjust the Goals Icon and draw in the Grid
 
         Returns:
 
-            An Goal in the Grid
+            The Goal icon translated to the PyGame Library and Draw
+            at the specified GOAL location
         '''
+        # SET THE GOAL
+        self.goal = vec(goal)
         # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
         self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
@@ -555,5 +565,8 @@ class WorldGrid:
         # SCALE THE IMAGE
         self.goal_img = pygame.transform.scale(self.goal_img, (50,50))
         # FILL THE IMAGE WITH THE BLEND MODULE
-        self.goal_img.fill((0, 255, 0, 255), special_flags = pygame.BLEND_RGBA_MULT)
-
+        self.goal_img.fill((255, 0, 0, 255), special_flags = pygame.BLEND_RGBA_MULT)
+        self.goal_center = ((self.goal.x * cellSizeWidth) + (cellSizeHeight / 2),
+                            (self.goal.y *cellSizeWidth) + (cellSizeHeight / 2))
+        screen.blit(self.goal_img,
+                    self.goal_img.get_rect(center = self.goal_center))
