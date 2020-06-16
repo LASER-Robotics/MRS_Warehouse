@@ -66,6 +66,12 @@ vec = pygame.math.Vector2
 pos_x = 0
 #* SET the DEFAULT position Y in the grid
 pos_y = 0
+#* SET the DEFAULT START Position X and Y
+start_x = 0
+start_y = 0
+#* SET the DEFAULT GOAL Position X and Y
+goal_x = 9
+goal_y = 3
 
 class PathPlanning:
     """
@@ -100,7 +106,7 @@ class PathPlanning:
         pass
 
 
-    def find_free_space(self, graph, position=(pos_x, pos_y)):
+    def find_free_space(self, graph, goal=(pos_x, pos_y)):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns a list of free nodes that can be explored starting from the
@@ -149,18 +155,16 @@ class PathPlanning:
 
         """
         print('\n__________________ FREE PATH SEARCH STARTED __________________\n')
-        # SET THE POSITION USING LIST COMPREHENSION
-        self.position_x, self.position_y = position[0], position[1]
         # TRANSFORM THE POSITION TO THE PYGAME VECTOR
-        self.position = vec(self.position_x, self.position_y)
+        self.goal = goal
         # IMPORT THE DEQUE TO PUT THE NODES
         self.frontier = deque()
         # APPEND THE FRONTIER WITH THE POSITION
-        self.frontier.append(position)
+        self.frontier.append(self.goal)
         # THE LIST OF VISITED NODES
         self.visited = []
         # THE POSITION WILL BE PUT AT THE VISITED QUEUE (IS WHERE WE ARE)
-        self.visited.append(position)
+        self.visited.append(self.goal)
         # START OUR LOOP
         #* As long there's nodes on the frontier do
         while len(self.frontier) > 0:
@@ -183,8 +187,9 @@ class PathPlanning:
         return self.visited
 
     #? The memory profile generator
-    @profile
-    def breath_first_search(self, graph, start, goal):
+    #@profile
+    def breath_first_search(self, graph, start = (start_x, start_y),
+                            goal = (goal_x, goal_y)):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns the Breath Firs Search for the Node inputed in the header.
@@ -192,22 +197,28 @@ class PathPlanning:
         Attributes:
 
             (graph) (Class)
-            (position) (tuple)
+            (start) (tuple)
+            (goal)  (tuple)
         
         Args:
 
             (graph): A World Grid Class
-            (pos_x, pos_y): Is the position in the World Grid that
-                            we want to find path to it
+            (start): Is the position in the World Grid that
+                     we start the Path Plannign Algorithm
+            (goal) : Is the position in the World Grid that
+                     we want to achieve 
         
         Vars:
 
-            pos_x = The node position in the X axys (column)
-            pos_y = The node position in the Y axys (row)
+            start_x = The START node position in the X axys (column)
+            start_y = The START node position in the Y axys (row)
+            goal_x = The GOAL node position in the X axys (column)
+            goal_y = The GOAL node position in the Y axys (row)
         
         Returns:
 
-            A list of Path nodes available to the Position Inputed
+            The Shortest Path Using Breath First Search for the START
+            and GOAL nodes provided
 
         """
     
@@ -217,7 +228,9 @@ class PathPlanning:
         start_process_time = process_time()
         # SET THE START AND GOAL VALUES
         self.start = start
+        print(f'The Start Node is located at: {self.start}')
         self.goal = goal
+        print(f'The Goal Node is located at: {self.goal}')
         # IMPORT THE DEQUE TO PUT THE NODES
         self.frontier = deque()
         # APPEND THE FRONTIER WITH THE POSITION
@@ -241,6 +254,8 @@ class PathPlanning:
             #* Pop's the next on the queue list
             self.current = self.frontier.popleft()
             print(f'Current: {self.current}')
+            if self.current == self.goal:
+                break
             # THE NEIGHBOORS OF THE CURRENT TILE
             #? Init the For Interactions Variable
             self.for_interactions = 0
@@ -293,18 +308,8 @@ def vec_to_int(vector):
     # RETURN THE VECTOR AS INTEGER
     return (int(vector.x), int(vector.y))
 
-def draw_icons():
-    cell_size = world.createWorld.cellSizeWidth
-    start_center = (start.x * cell_size + cell_size / 2,
-                    start.y * cell_size + cell_size / 2)
-    robot_draw = newWorld.draw_robot()
-    world.createWorld.screen.blit(robot_draw.robot_img, robot_draw.robot_img.get_rect(center=start_center))
-    goal_center = (goal.x * cell_size + cell_size / 2,
-                   goal.y *cell_size + cell_size / 2)
-    goal_draw = newWorld.draw_goal()
-    world.createWorld.screen.blit(goal_draw.goal_img, goal_draw.goal_img.get_rect(center=goal_center))
 
-def main():
+def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     """
     The main function of the Path Planning Library, responsible to run
     the World e execute the desired functions. Put here the world you
@@ -315,17 +320,20 @@ def main():
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
     #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
-    global start, goal, newWorld
-    goal = vec(9,3)
-    start = vec(0,0)
+    global start_node, goal_node
+    start_node = vec(start)
+    print(start_node)
+    goal_node = vec(goal)
+    print(goal_node)
     newWorld = world.createWorld.WorldGrid()
     planning = PathPlanning()
     # PUT THE FUNCTIONS THAT YOU WANT BELLOW
     #* THE POSTIION WE WANT
     #* Using the Find Free Space to find the free space availabe in the
-    free_space = planning.find_free_space(newWorld, goal)
+    free_space = planning.find_free_space(newWorld, goal_node)
     #* Using the Breath First Search to find the paths
-    path = planning.breath_first_search(newWorld, start, goal)
+    #? Inverted since the Breath Search works from goal to start
+    path = planning.breath_first_search(newWorld, goal_node, start_node)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
@@ -368,19 +376,21 @@ def main():
                     else:
                         # ADD A OBSTACLE
                         newWorld.obstaclesPosition.append(mouse_pos)
-                    # FOR EVERY NEW CLICK  OR OBSTACLE ADD, WE RECALCULATE THE PATH
+                # FOR EVERY NEW CLICK  OR OBSTACLE ADD, WE RECALCULATE THE PATH
+                #* MIDDLE MOUSE TO CHANGE THE CURRENT START POSITION
                 if event.button == 2:
-                    start = mouse_pos
+                    start_node = mouse_pos
+                #* RIGHT MOUSE TO CHANGE THE GOAL
                 if event.button == 3:
-                    start = mouse_pos
-                path = planning.breath_first_search(newWorld, start, goal)
+                    goal_node = mouse_pos
+                path = planning.breath_first_search(newWorld, goal_node, start_node)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
         # FILLS THE SCREEN WITH A BLANK DISPLAY
         world.createWorld.screen.fill(world.createWorld.COLOR_WHITE)
         # FILL THE EXPLORED AREA
         for node in path:
-            x,y = node
+            x, y = node
             rect = pygame.Rect(x * world.createWorld.cellSizeWidth,
                                y * world.createWorld.cellSizeWidth,
                                world.createWorld.cellSizeWidth,
@@ -402,20 +412,14 @@ def main():
         newWorld.draw_delivery_zone()
         #* Draw the Pickup Zone
         newWorld.draw_pickup_zone()
-        #* Load the Draw Arrow Function
         newWorld.draw_arrows()
-        #* Load the Draw Robot Function
-        newWorld.draw_robot()
-        #* Load the Draw Goal Function
-        newWorld.draw_goal()
         #* Draw the Path from Start to Goal
-        #! Encontrar solução para o Erro
-        current = start + path[vec_to_int(start)]
+        current = start_node + path[vec_to_int(start_node)]
         #* As long we never reached the Goal
-        while current != goal:
+        while current != goal_node:
             x = (current.x * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
-            y = (current.x * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
-            img = arrows[vec_to_int(path[(current.x, current.y)])]
+            y = (current.y * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
+            img = newWorld.arrows[vec_to_int(path[(current.x, current.y)])]
             #* Center the image in the cell
             arrow_rec = img.get_rect(center=(x,y))
             #* Show in the screen
@@ -423,9 +427,12 @@ def main():
             # FIND THE NEXT NODE IN THE PATH
             #* Add to the current node the next node in the path
             current = current + path[vec_to_int(current)]
-        draw_icons()
+        #* Load the Draw Robot Function
+        newWorld.draw_robot(start_node)
+        #* Load the Draw Goal Function
+        newWorld.draw_goal(goal_node)
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
 if __name__ == '__main__':
-    main()
+    run_breadth_search()
