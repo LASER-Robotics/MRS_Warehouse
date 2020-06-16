@@ -32,9 +32,9 @@ Para executar os arquivos de teste:
 python3 nome_do_arquivo.py
 ```
 
-Para executar o arquivo principal (Em desenv.):
+Para executar o arquivo principal (Em desenv.) utilize o argpase -h ou --help para mais informações sobre as simulações disponíveis:
 
 
 ```
-python3 -m memory_profiler main.py
+python3 main.py -h 
 ```  
