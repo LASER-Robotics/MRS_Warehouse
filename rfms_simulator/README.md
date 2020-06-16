@@ -25,13 +25,6 @@ Para utilizar o pacote de exemplo basta executar o arquivo "example.py" com o Py
 python3 -m memory_profiler example.py
 ```
 
-Para executar os arquivos de teste:
-
-
-```
-python3 nome_do_arquivo.py
-```
-
 Para executar o arquivo principal (Em desenv.) utilize o argpase -h ou --help para mais informações sobre as simulações disponíveis:
 
 
