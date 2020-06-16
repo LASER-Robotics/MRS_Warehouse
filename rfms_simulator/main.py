@@ -965,7 +965,7 @@ def main():
     parser.add_argument('--breath', action='store_true',
                         help='Runs the Breath First Search')
 
-    parser.add_argument('-dijkstra', action='store_true',
+    parser.add_argument('--dijkstra', action='store_true',
                         help='Runs the Dijkstra Search')
 
     parser.add_argument('--astar', action='store_true',
