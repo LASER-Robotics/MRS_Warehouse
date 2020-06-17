@@ -460,7 +460,7 @@ class PathPlanning:
                     #* Update the values
                     self.cost[next] = self.next_cost
                     #? Instead of the Dijkstra, the priority will be the heuristic function
-                    self.priority = heuristic(self.goal, self.start)
+                    self.priority = self.next_cost + heuristic(self.goal, vec(next))
                     #* Put in the priority
                     self.frontier.put(next, self.priority)
                     #* Put in the path vector

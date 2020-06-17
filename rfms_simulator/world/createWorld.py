@@ -657,10 +657,10 @@ class WeightedGrid(WorldGrid):
         self.weights = {}
         # CREATE WEIGHTS FOR THE RECHARGE ZONE
         for Recharge in self.world_recharge_position:
-                self.weights[Recharge] = 15
+                self.weights[Recharge] = 40
         
         for Pickup in self.world_pickup_positions:
-            self.weights[Pickup] = 15
+            self.weights[Pickup] = 40
 
     # COST FUNCTION
     def cost(self, from_node, to_node):
