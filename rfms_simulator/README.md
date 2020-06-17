@@ -39,8 +39,11 @@ Durante a simulação é possível modificar a localização do robô, o goal de
 
 Informações sobre a visualização:
 
-- A *área em cinza escuro* é o caminho que foi explorado pelo algorítmo
-- A *área em cinza claro* são os obstáculos (pods)
-- A *área em amarelo* é a zona de recarga
-- A *área em vermelho* é a zona de pick
+- A *área em cinza claro* é o caminho que foi explorado pelo algorítmo de path planning
+- A *seta preta* é o caminho mais curto encontrado pelo algoritmo de path planning
+- A *área em cinza escuro* são os obstáculos (pods/estantes)
+- A *área em amarelo* é a zona de queue para recarga
+- O *quadrado amarelo* é onde o robô irá efetuar a recarga
+- O *qadrado vermelho* é onde o robô irá efetuar o pick
+- A *área em vermelho* é a zona de queue para pick
 - A *área azul claro* é a zona de delivery
