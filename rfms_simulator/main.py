@@ -572,7 +572,7 @@ def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robots = world.createWorld.Robots(start_node)
+    robots = world.createWorld.Robots(start_node, goal_node, path)
     workers = world.createWorld.Workers(newWorld.world_workers_positions)
     treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
@@ -608,6 +608,9 @@ def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
                             [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
+                if event.key == pygame.K_SPACE:
+                    #* Run the robot movement simulation
+                    all_robots.update()
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -625,14 +628,14 @@ def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                 #* MIDDLE MOUSE TO CHANGE THE CURRENT START POSITION
                 if event.button == 2:
                     start_node = mouse_pos
+                    print(start_node)
                 #* RIGHT MOUSE TO CHANGE THE GOAL
                 if event.button == 3:
                     goal_node = mouse_pos
                 path = planning.breath_first_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robots = world.createWorld.Robots(start_node)
+                robots = world.createWorld.Robots(start_node, goal_node, path)
                 all_robots.add(robots)
-                all_robots.update()
                 all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
@@ -669,7 +672,6 @@ def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
         #* Draw the Path Planning Arrows
         newWorld.draw_arrows()
         #* Update the Spriters
-        all_robots.update()
         all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
@@ -761,7 +763,7 @@ def run_dijkstras_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robots = world.createWorld.Robots(start_node)
+    robots = world.createWorld.Robots(start_node, goal_node, path)
     workers = world.createWorld.Workers(newWorld.world_workers_positions)
     treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
@@ -797,6 +799,9 @@ def run_dijkstras_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
                             [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
+                if event.key == pygame.K_SPACE:
+                    #* Run the robot movement simulation
+                    all_robots.update()
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -819,9 +824,8 @@ def run_dijkstras_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                     goal_node = mouse_pos
                 path = planning.dijkstras_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robots = world.createWorld.Robots(start_node)
+                robots = world.createWorld.Robots(start_node, goal_node, path)
                 all_robots.add(robots)
-                all_robots.update()
                 all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
@@ -857,8 +861,7 @@ def run_dijkstras_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
         newWorld.draw_pickup_zone()
         #* Draw the Arrows
         newWorld.draw_arrows()
-        #* Update the Spriters
-        all_robots.update()
+        #* Update the Workers and Treadmill Spriters
         all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
@@ -950,7 +953,7 @@ def run_astar_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robots = world.createWorld.Robots(start_node)
+    robots = world.createWorld.Robots(start_node, goal_node, path)
     workers = world.createWorld.Workers(newWorld.world_workers_positions)
     treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
@@ -986,6 +989,9 @@ def run_astar_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
                             [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
+                if event.key == pygame.K_SPACE:
+                    #* Run the robot movement simulation
+                    all_robots.update()
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -1008,9 +1014,8 @@ def run_astar_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
                     goal_node = mouse_pos
                 path = planning.astar_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robots = world.createWorld.Robots(start_node)
+                robots = world.createWorld.Robots(start_node, goal_node, path)
                 all_robots.add(robots)
-                all_robots.update()
                 all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
@@ -1047,7 +1052,6 @@ def run_astar_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
         #* Draw the Arrows
         newWorld.draw_arrows()
         #* Update the Spriters
-        all_robots.update()
         all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
