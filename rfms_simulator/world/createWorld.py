@@ -86,7 +86,7 @@ COLOR_GRAYISH = (226, 230, 230)
 #* SET the DEFAULT FPS
 FPS = 60
 #* SET the DEFAUL VELOCITY
-MAX_VELOCITY = 2
+MAX_VELOCITY = 100
 # OBSTACLES AND SOME CELL POSITIONS IN THE GRID
 #! BE CAREFUL AND NOT TO SET CELL VALUE TO MORE THAN ONE VARIABLE!
 #! ALSO CHECK THE FREE SPACE AVAILABLE!
@@ -794,13 +794,15 @@ class WeightedGrid(WorldGrid):
         user.
     '''
 
-    def __init__(self, world_grid_size=(GRID_WIDTH, GRID_HEIGHT),
-                 world_cell_size=(CELL_WIDTH, CELL_HEIGHT),
-                 world_obstacles_position= OBSTACLES,
-                 world_recharge_position= RECHARGE_ZONE,
-                 world_treadmill_position= TREADMILL_ZONE,
-                 world_workers_positions= WORKERS_POS,
-                 world_delivery_positions= DELIVERY_ZONE,
+    def __init__(self, world_grid_size = (GRID_WIDTH, GRID_HEIGHT),
+                 world_cell_size = (CELL_WIDTH, CELL_HEIGHT),
+                 world_obstacles_positions = OBSTACLES,
+                 world_recharge_queue_positions = RECHARGE_ZONE_QUEUE,
+                 world_recharge_positions = RECHARGE_ZONE,
+                 world_treadmill_positions = TREADMILL_ZONE,
+                 world_workers_positions = WORKERS_POS,
+                 world_delivery_positions = DELIVERY_ZONE,
+                 world_pickup_queue_positions = PICKUP_ZONE_QUEUE,
                  world_pickup_positions = PICKUP_ZONE,
                  world_dont_move = DONT_MOVE):
  
@@ -808,9 +810,13 @@ class WeightedGrid(WorldGrid):
         # CREATE A DIC TO SAVE THE NODE WEIGHTS
         self.weights = {}
         # CREATE WEIGHTS FOR THE RECHARGE ZONE
+        for Recharge_Queue in self.world_recharge_position:
+            self.weights[Recharge_Queue] = 50
         for Recharge in self.world_recharge_position:
-                self.weights[Recharge] = 40
+            self.weights[Recharge] = 40
         # CREATE WEIGHTS FOR THE PICKUP ZONE
+        for Pickup_Queue in self.world_pickup_queue_positions:
+            self.weights[Pickup_Queue] = 50
         for Pickup in self.world_pickup_positions:
             self.weights[Pickup] = 40
 
@@ -910,7 +916,12 @@ class Robots(pygame.sprite.Sprite):
     Adjust the Robot Icon and draw in the Grid as a Sprite
 
     Args:
-        start (Tuple): The Robot start position (X , Y) 
+
+        start (vector2d): The Robot start node position (X , Y)
+                          in the Vector2d PyGame format
+        goal (vector2d):  The Robot goal position (X, Y) in the
+                          Vector2d PyGame format
+        path (vector2d):  The Shortest Path the robot will run
 
     Returns:
 
@@ -918,11 +929,15 @@ class Robots(pygame.sprite.Sprite):
         at the specified START location
     '''
     # The Sprite for the Robots
-    def __init__(self, start):
+    def __init__(self, start, goal, path):
 
         pygame.sprite.Sprite.__init__(self)
-        # SET THE START NODE
-        self.start = vec(start)
+        # THE PATH VARIABLES
+        self.path = path
+        self.start = start
+        #* The Start used to Move the Robot
+        self.start_pos = (int(start.x), int(start.y))
+        self.goal_pos = goal
         # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
         self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
@@ -933,13 +948,78 @@ class Robots(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         # FILL THE IMAGE WITH THE BLEND MODULE
         self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
-                                  (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
-    
-    def update(self):
-
+                            (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
+        # SET THE ROTATION
+        self.rotation = 0
         # SET THE SPEED
         self.x_speed = MAX_VELOCITY
         self.y_speed = MAX_VELOCITY
+        # SET THE PATH HEAP WHERE THE ROBOT WILL MOVE
+        self.robot_path_pop = deque([])
+        # SET the PATH for the Robot as Global
+        global robotPath, pathVector
+        robotPath = deque([])
+        pathVector = deque([])
+        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
+        self.move_left = vec(1, 0)
+        self.move_bottom = vec(0, 1)
+        self.move_right = vec(-1, 0)
+        self.move_top = vec(0, -1)
+        #* Set the Current position on the Node
+        self.current_pos = self.path[(self.start_pos)] + self.start
+        robotPath.extend([self.current_pos])
+        path_vector_start = self.current_pos - self.start
+        pathVector.extend([path_vector_start])
+        while self.current_pos != self.goal_pos:
+            self.path_vector = self.path[(self.current_pos.x, self.current_pos.y)]
+            pathVector.extend([self.path_vector])
+            self.current_pos = self.current_pos + self.path[(int(self.current_pos.x),
+                                                             int(self.current_pos.y))]
+            robotPath.extend([self.current_pos])         
+
+        print(f'The robot path was the nodes: {list(robotPath)}\n')
+        print(f'The robot movements desired is: {list(pathVector)}\n')
+
+    def update(self):
+        '''
+        Update the Robot Location at every Frame when SPACE is Pressed
+
+        Args:
+
+            None
+        
+        Returns:
+
+            The Robot icon translated to the PyGame Library and Draw
+            at the Screen moving to START to GOAL along the shortest
+            path found by the Search Algorithm.
+        '''
+        try:
+            #* Pick the Path Vector 
+            vector = pathVector.popleft()
+            #* Move to Left
+            if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
+
+                self.rect.x += MAX_VELOCITY
+            #* Move to Right
+            elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
+
+                self.rect.x -= MAX_VELOCITY
+            #* Move to Top
+            elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
+
+                self.rect.y -= MAX_VELOCITY
+            #* Move to Bottom
+            else:
+
+                self.rect.y += MAX_VELOCITY
+        #* Finish the Animation
+        except:
+            print('------------------')
+            print('Animation Finised!')
+            print('------------------\n')
+            print('To RESTART change the robot start or goal position and press SPACE\n')
+            print('To QUIT close the Screen\n')
 
 class Workers(pygame.sprite.Sprite):
     '''
