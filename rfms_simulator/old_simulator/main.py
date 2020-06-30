@@ -52,28 +52,36 @@ import time
 import timeit
 import schedule
 import concurrent.futures
-import multiprocessing
+#* To see the memory usage in each line
+import memory_profiler
+#* Import the createWorld Module
+import world.createWorld
 #? Using the collections module since is the most efficient
 #? to implement and manipulate a queue list
 from collections import deque
 #* To see the sum of the system and user CPU Time of
 #* of the current process
 from time import process_time
-#* To see the memory usage in each line
-import memory_profiler
-#* Import the createWorld Module
-from world import createWorld, settings
 
-
-# LOAD THE WORLD VARIABLES
-#* Horizontal Layout
-world = createWorld.world
-# LOAD THE PYGAME DEFAULTS VARIABLES
-default = settings.PygameDefaults()
-# LOAD THE COLORS FROM THE SETTINGS
-paint = settings.Colors()
+# GLOBAL VARIABLES
 #* Load the PyGame Vector2 lib
 vec = pygame.math.Vector2
+#* SET the DEFAULT position X in the grid
+pos_x = 0
+#* SET the DEFAULT position Y in the grid
+pos_y = 0
+#* SET the DEFAULT START Position X and Y
+start_x = 0
+start_y = 0
+#* SET the DEFAULT GOAL Position X and Y
+goal_x = 9
+goal_y = 3
+#* SET the DEFAULT TIME Start and Limit
+start_time = 0
+limit_time = 10000
+#* SET the DEFAULT Number of Robots
+robots_no = 3
+
 
 class PathPlanning:
     """
@@ -108,7 +116,7 @@ class PathPlanning:
         pass
 
 
-    def find_free_space(self, graph, goal=world.GOAL):
+    def find_free_space(self, graph, goal=(pos_x, pos_y)):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns a list of free nodes that can be explored starting from the
@@ -122,8 +130,13 @@ class PathPlanning:
         Args:
 
             (graph): A World Grid Class
-            (goal): Is the goal position in the World Grid that
-                    we want to find the free space as a tuple
+            (pos_x, pos_y): Is the start position in the World Grid that
+                            we want to find the free space as a tuple
+        
+        Vars:
+
+            pos_x = The node position in the X axys (column)
+            pos_y = The node position in the Y axys (row)
         
         Returns:
 
@@ -185,8 +198,8 @@ class PathPlanning:
         print(f'\nFree Node Cells availabe: {visitedNodes} Grid Cells')
         return self.visited
 
-    def breath_first_search(self, graph, start = world.START,
-                            goal = world.GOAL):
+    def breath_first_search(self, graph, start = (start_x, start_y),
+                            goal = (goal_x, goal_y)):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns the Breath First Search for the Node inputed in the header.
@@ -204,6 +217,13 @@ class PathPlanning:
                      we start the Path Plannign Algorithm
             (goal) : Is the position in the Weighted Grid that
                      we want to achieve
+        
+        Vars:
+
+            start_x (int) = The START node position in the X axys (column)
+            start_y (int) = The START node position in the Y axys (row)
+            goal_x  (int) = The GOAL node position in the X axys (column)
+            goal_y  (int) = The GOAL node position in the Y axys (row)
         
         Returns:
 
@@ -275,8 +295,8 @@ class PathPlanning:
               stop_process_time - start_process_time, 'sec\n')
         return self.path
 
-    def dijkstras_search(self, graph, start = world.START,
-                         goal = world.GOAL):
+    def dijkstras_search(self, graph, start = (start_x, start_y),
+                         goal = (goal_x, goal_y)):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns the the shortest path using Dijkstra Search for the Weighted
@@ -296,6 +316,13 @@ class PathPlanning:
             (goal) : Is the position in the Weighted Grid that
                      we want to achieve
         
+        Vars:
+
+            start_x (int) = The START node position in the X axys (column)
+            start_y (int) = The START node position in the Y axys (row)
+            goal_x  (int) = The GOAL node position in the X axys (column)
+            goal_y  (int) = The GOAL node position in the Y axys (row)
+        
         Returns:
 
             The Shortest Path Using Dijkstra Search for the START
@@ -313,7 +340,7 @@ class PathPlanning:
         self.goal = goal
         print(f'The Goal Node is located at: {self.goal}')
         # IMPORT THE QUEUE TO PUT THE NODES
-        self.frontier = createWorld.PriorityQueue()
+        self.frontier = world.createWorld.PriorityQueue()
         #* Put the nodes on the Frontier with cost 0
         self.frontier.put(vec_to_int(self.start), 0)
         #* Starts the Path Dictionary
@@ -366,8 +393,8 @@ class PathPlanning:
         
         return self.path
 
-    def astar_search(self, graph, start = world.START,
-                     goal = world.GOAL):
+    def astar_search(self, graph, start = (start_x, start_y),
+                         goal = (goal_x, goal_y)):
         """
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
         and returns the shortest path using A-Star (A*) Search for the Weighted Nodes.
@@ -384,7 +411,14 @@ class PathPlanning:
             (start): Is the position in the Weighted Grid that
                      we start the Path Plannign Algorithm
             (goal) : Is the position in the Weighted Grid that
-                     we want to achieve
+                     we want to achieve 
+        
+        Vars:
+
+            start_x = The START node position in the X axys (column)
+            start_y = The START node position in the Y axys (row)
+            goal_x  = The GOAL node position in the X axys (column)
+            goal_y  = The GOAL node position in the Y axys (row)
         
         Returns:
 
@@ -403,7 +437,7 @@ class PathPlanning:
         self.goal = goal
         print(f'The Start Node is located at: {self.goal}')
         # IMPORT THE QUEUE TO PUT THE NODES
-        self.frontier = createWorld.PriorityQueue()
+        self.frontier = world.createWorld.PriorityQueue()
         #* Put the nodes on the Frontier with cost 0
         self.frontier.put(vec_to_int(self.start), 0)
         #* Starts the Path Dictionary
@@ -457,9 +491,9 @@ class PathPlanning:
         
         return self.path
 
-    def space_astar_search(self, graph, start=world.START,
-                           goal = world.GOAL,
-                           time = world.TIME_LIMIT):
+    def space_astar_search(self, graph, start=(start_x, start_y),
+                           goal = (goal_x, goal_y),
+                           time = (start_time, limit_time)):
         """
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
         and returns the shortest path using Space Time A-Star (A*) Search for the
@@ -470,17 +504,22 @@ class PathPlanning:
             (graph) (Class)
             (start) (tuple)
             (goal)  (tuple)
-            (time)  (int)
+            (time)  (tuple)
         
         Args:
 
             (graph): A Weighted Grid
             (goal) : Is the position in the Weighted Grid that
                      we want to achieve
-            (time) : Is the time limit that to run the algorithm
+            (time) : Is the time that we will run the algorithm
         
         Vars:
 
+            start_x (int) = The START node position in the X axys (column)
+            start_y (int) = The START node position in the Y axys (row)
+            goal_x  (int)= The GOAL node position in the X axys (column)
+            goal_y  (int)= The GOAL node position in the Y axys (row)
+            start_time (int) = The Start Time (Usually 0)
             limit_time (int) = The Maximum Time we Can Run The Search
         
         Returns:
@@ -503,7 +542,7 @@ class PathPlanning:
         self.time = time
         print(f'The Time Limit is: {self.time[1]}')
         # IMPORT THE QUEUE TO PUT THE NODES
-        self.frontier = createWorld.PriorityQueue()
+        self.frontier = world.createWorld.PriorityQueue()
         #* Put the nodes on the Frontier with cost 0
         self.frontier.put(vec_to_int(self.start), 0)
         #* Starts the Path Dictionary
@@ -604,7 +643,7 @@ def manhattan_distance(node_one, node_two):
 
     return manhattan_distance
 
-def run_breadth_search(start=world.START, goal=world.GOAL):
+def run_breadth_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     """
     The Breadth Search function of the Path Planning Library, responsible
     to run the Grid World and calculate the shortest path in a PyGame Screen
@@ -620,6 +659,13 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
+    
+    Vars:
+
+        start_x (int) = The START node position in the X axys (column)
+        start_y (int) = The START node position in the Y axys (row)
+        goal_x  (int)= The GOAL node position in the X axys (column)
+        goal_y  (int)= The GOAL node position in the Y axys (row)
 
     Returns:
 
@@ -633,9 +679,9 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
     global start_node, goal_node
     start_node = vec(start)
     print(start_node)
-    goal_node = vec(goal.popleft())
+    goal_node = vec(goal)
     print(goal_node)
-    newWorld = createWorld.WorldGrid()
+    newWorld = world.createWorld.WorldGrid()
     planning = PathPlanning()
     # PUT THE FUNCTIONS THAT YOU WANT BELLOW
     #* THE POSTIION WE WANT
@@ -646,19 +692,22 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
     path = planning.breath_first_search(newWorld, goal_node, start_node)
     #* Start all the Sprite Class in a Group
     all_robots = pygame.sprite.Group()
+    all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robot = createWorld.SingleRobot(start_node, goal_node, path)
-    treadmill_items = createWorld.TreadmillItems()
+    robot = world.createWorld.SingleRobot(start_node, goal_node, path)
+    workers = world.createWorld.Workers(newWorld.world_workers_positions)
+    treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
-    all_robots.add(robot)       
+    all_robots.add(robot)
+    all_workers.add(workers)
     all_treadmill_items.add(treadmill_items)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
     while running:
         # ADJUST THE CLOCK
-        createWorld.clock.tick(default.FPS)
+        world.createWorld.clock.tick(world.createWorld.FPS)
         # IF THE PYGAME RECEIVES AN EVENT
         for event in pygame.event.get():
             # IF THE EVENT IS TO QUIT THE APPLICATION
@@ -681,7 +730,7 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
                     # Dump the wall list for saving (if needed)
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
-                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                            [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     all_robots.update()
@@ -708,22 +757,22 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
                     goal_node = mouse_pos
                 path = planning.breath_first_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robot = createWorld.SingleRobot(start_node, goal_node, path)
+                robot = world.createWorld.SingleRobot(start_node, goal_node, path)
                 all_robots.add(robot)
-                all_robots.draw(createWorld.screen)
+                all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
-        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
         # FILLS THE SCREEN WITH A BLANK DISPLAY
-        createWorld.screen.fill(paint.COLOR_WHITE)
+        world.createWorld.screen.fill(world.createWorld.COLOR_WHITE)
         # FILL THE EXPLORED AREA
         for node in path:
             x, y = node
-            rect = pygame.Rect(x * createWorld.cellSizeWidth,
-                               y * createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth)
-            pygame.draw.rect(createWorld.screen,
-                             paint.COLOR_STATEGRAY, rect)
+            rect = pygame.Rect(x * world.createWorld.cellSizeWidth,
+                               y * world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth)
+            pygame.draw.rect(world.createWorld.screen,
+                             world.createWorld.COLOR_STATEGRAY, rect)
         # UPDATE THE DISPLAY
         #* Draw the grid
         newWorld.draw_grid()
@@ -735,19 +784,23 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
         newWorld.draw_workers_zone()
         #* Draw the Delivery Zone
         newWorld.draw_delivery_zone()
+        #* Draw the Recharge Queue Zone
+        newWorld.draw_queue_recharge_zone()
         #* Draw the Recharge Zone
         newWorld.draw_recharge_zone()
+        #* Draw the Pickup Queue Zone
+        newWorld.draw_queue_pickup_zone()
         #* Draw the Pickup Zone
         newWorld.draw_pickup_zone()
-        #* Draws the Don't Move Zone
-        newWorld.draw_dont_move()
         #* Draw the Path Planning Arrows
         newWorld.draw_arrows()
         #* Update the Spriters
+        all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
-        all_robots.draw(createWorld.screen)
-        all_treadmill_items.draw(createWorld.screen)
+        all_robots.draw(world.createWorld.screen)
+        all_workers.draw(world.createWorld.screen)
+        all_treadmill_items.draw(world.createWorld.screen)
         #* Draw the Path from Start to Goal
         current = start_node + path[vec_to_int(start_node)]
         #* Empty Variable to Calculates the Path Lenght
@@ -760,13 +813,13 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
             #? Euclidean length of the vector
             if path_vector.length_squared() == 1:
                 pathLength += 1
-            x = (current.x * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
-            y = (current.y * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
+            x = (current.x * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
+            y = (current.y * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
             img = newWorld.arrows[vec_to_int(path[(current.x, current.y)])]
             #* Center the image in the cell
             arrow_rec = img.get_rect(center=(x,y))
             #* Show in the screen
-            createWorld.screen.blit(img, arrow_rec)
+            world.createWorld.screen.blit(img, arrow_rec)
             # FIND THE NEXT NODE IN THE PATH
             #* Add to the current node the next node in the path
             current = current + path[vec_to_int(current)]
@@ -776,19 +829,19 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
         newWorld.draw_goal(goal_node)
         #* Draws the Path Size in the screen
         newWorld.draw_text('Breadth First Search', 15,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-30,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-30,
                            align="bottomright")
         newWorld.draw_text('Path Lenght: {} Node Cells'.format(pathLength), 13,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-10,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-10,
                            align="bottomright")
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
-def run_dijkstras_search(start=world.START, goal=world.GOAL):
+def run_dijkstras_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     """
     The Dijkstras Search function of the Path Planning Library, responsible
     to run the Weighted World and calculate the shortest path in a PyGame Screen
@@ -804,6 +857,13 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
+    
+    Vars:
+
+        start_x (int) = The START node position in the X axys (column)
+        start_y (int) = The START node position in the Y axys (row)
+        goal_x  (int)= The GOAL node position in the X axys (column)
+        goal_y  (int)= The GOAL node position in the Y axys (row)
 
     Returns:
 
@@ -817,9 +877,9 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
     global start_node, goal_node
     start_node = vec(start)
     print(start_node)
-    goal_node = vec(goal.popleft())
+    goal_node = vec(goal)
     print(goal_node)
-    newWorld = createWorld.WeightedGrid()
+    newWorld = world.createWorld.WeightedGrid()
     planning = PathPlanning()
     # PUT THE FUNCTIONS THAT YOU WANT BELLOW
     #* THE POSTIION WE WANT
@@ -830,19 +890,22 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
     path = planning.dijkstras_search(newWorld, goal_node, start_node)
     #* Start all the Sprite Class in a Group
     all_robots = pygame.sprite.Group()
+    all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robot = createWorld.SingleRobot(start_node, goal_node, path)
-    treadmill_items = createWorld.TreadmillItems()
+    robot = world.createWorld.SingleRobot(start_node, goal_node, path)
+    workers = world.createWorld.Workers(newWorld.world_workers_positions)
+    treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
     all_robots.add(robot)
+    all_workers.add(workers)
     all_treadmill_items.add(treadmill_items)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
     while running:
         # ADJUST THE CLOCK
-        createWorld.clock.tick(default.FPS)
+        world.createWorld.clock.tick(world.createWorld.FPS)
         # IF THE PYGAME RECEIVES AN EVENT
         for event in pygame.event.get():
             # IF THE EVENT IS TO QUIT THE APPLICATION
@@ -865,7 +928,7 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
                     # Dump the wall list for saving (if needed)
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
-                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                            [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     all_robots.update()
@@ -891,22 +954,22 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
                     goal_node = mouse_pos
                 path = planning.dijkstras_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robot = createWorld.SingleRobot(start_node, goal_node, path)
+                robot = world.createWorld.SingleRobot(start_node, goal_node, path)
                 all_robots.add(robot)
-                all_robots.draw(createWorld.screen)
+                all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
-        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
         # FILLS THE SCREEN WITH A BLANK DISPLAY
-        createWorld.screen.fill(paint.COLOR_WHITE)
+        world.createWorld.screen.fill(world.createWorld.COLOR_WHITE)
         # FILL THE EXPLORED AREA
         for node in path:
             x, y = node
-            rect = pygame.Rect(x * createWorld.cellSizeWidth,
-                               y * createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth)
-            pygame.draw.rect(createWorld.screen,
-                             paint.COLOR_STATEGRAY, rect)
+            rect = pygame.Rect(x * world.createWorld.cellSizeWidth,
+                               y * world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth)
+            pygame.draw.rect(world.createWorld.screen,
+                             world.createWorld.COLOR_STATEGRAY, rect)
         # UPDATE THE DISPLAY
         #* Draw the grid
         newWorld.draw_grid()
@@ -918,19 +981,23 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
         newWorld.draw_workers_zone()
         #* Draw the Delivery Zone
         newWorld.draw_delivery_zone()
+        #* Draw the Recharge Queue Zone
+        newWorld.draw_queue_recharge_zone()
         #* Draw the Recharge Zone
         newWorld.draw_recharge_zone()
+        #* Draw the Pickup Queue Zone
+        newWorld.draw_queue_pickup_zone()
         #* Draw the Pickup Zone
         newWorld.draw_pickup_zone()
         #* Draw the Arrows
         newWorld.draw_arrows()
-        #* Draw Don't Move Zone
-        newWorld.draw_dont_move()
-        #* Update the Treadmill Spriter
+        #* Update the Workers and Treadmill Spriters
+        all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
-        all_robots.draw(createWorld.screen)
-        all_treadmill_items.draw(createWorld.screen)
+        all_robots.draw(world.createWorld.screen)
+        all_workers.draw(world.createWorld.screen)
+        all_treadmill_items.draw(world.createWorld.screen)
         #* Draw the Path from Start to Goal
         current = start_node + path[vec_to_int(start_node)]
         #* Empty Variable to Calculates the Path Lenght
@@ -943,13 +1010,13 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
             #? Euclidean length of the vector
             if path_vector.length_squared() == 1:
                 pathLength += 1
-            x = (current.x * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
-            y = (current.y * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
+            x = (current.x * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
+            y = (current.y * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
             img = newWorld.arrows[vec_to_int(path[(current.x, current.y)])]
             #* Center the image in the cell
             arrow_rec = img.get_rect(center=(x,y))
             #* Show in the screen
-            createWorld.screen.blit(img, arrow_rec)
+            world.createWorld.screen.blit(img, arrow_rec)
             # FIND THE NEXT NODE IN THE PATH
             #* Add to the current node the next node in the path
             current = current + path[vec_to_int(current)]
@@ -959,19 +1026,19 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
         newWorld.draw_goal(goal_node)
         #* Draws the Path Size in the screen
         newWorld.draw_text('Dijkstra Search', 15,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-30,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-30,
                            align="bottomright")
         newWorld.draw_text('Path Lenght: {} Node Cells'.format(pathLength), 13,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-10,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-10,
                            align="bottomright")
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
-def run_astar_search(start=world.START, goal=world.GOAL):
+def run_astar_search(start=(start_x, start_y), goal=(goal_x, goal_y)):
     """
     The A-Star (A*) Search function of the Path Planning Library, responsible
     to run the Weighted World and calculate the shortest path in a PyGame Screen
@@ -987,6 +1054,13 @@ def run_astar_search(start=world.START, goal=world.GOAL):
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
+    
+    Vars:
+
+        start_x (int) = The START node position in the X axys (column)
+        start_y (int) = The START node position in the Y axys (row)
+        goal_x  (int)= The GOAL node position in the X axys (column)
+        goal_y  (int)= The GOAL node position in the Y axys (row)
 
     Returns:
 
@@ -1000,9 +1074,9 @@ def run_astar_search(start=world.START, goal=world.GOAL):
     global start_node, goal_node
     start_node = vec(start)
     print(start_node)
-    goal_node = vec(goal.popleft())
+    goal_node = vec(goal)
     print(goal_node)
-    newWorld = createWorld.WeightedGrid()
+    newWorld = world.createWorld.WeightedGrid()
     planning = PathPlanning()
     # PUT THE FUNCTIONS THAT YOU WANT BELLOW
     #* THE POSTIION WE WANT
@@ -1013,19 +1087,22 @@ def run_astar_search(start=world.START, goal=world.GOAL):
     path = planning.astar_search(newWorld, goal_node, start_node)
     #* Start all the Sprite Class in a Group
     all_robots = pygame.sprite.Group()
+    all_workers = pygame.sprite.Group()
     all_treadmill_items = pygame.sprite.Group()
     #* Init the Spriter Class
-    robot = createWorld.SingleRobot(start_node, goal_node, path)
-    treadmill_items = createWorld.TreadmillItems()
+    robot = world.createWorld.SingleRobot(start_node, goal_node, path)
+    workers = world.createWorld.Workers(newWorld.world_workers_positions)
+    treadmill_items = world.createWorld.TreadmillItems()
     #* Add the Sprite Classes to the Groups
     all_robots.add(robot)
+    all_workers.add(workers)
     all_treadmill_items.add(treadmill_items)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
     while running:
         # ADJUST THE CLOCK
-        createWorld.clock.tick(default.FPS)
+        world.createWorld.clock.tick(world.createWorld.FPS)
         # IF THE PYGAME RECEIVES AN EVENT
         for event in pygame.event.get():
             # IF THE EVENT IS TO QUIT THE APPLICATION
@@ -1048,7 +1125,7 @@ def run_astar_search(start=world.START, goal=world.GOAL):
                     # Dump the wall list for saving (if needed)
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
-                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                            [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     all_robots.update()
@@ -1074,22 +1151,22 @@ def run_astar_search(start=world.START, goal=world.GOAL):
                     goal_node = mouse_pos
                 path = planning.astar_search(newWorld, goal_node, start_node)
                 all_robots = pygame.sprite.Group()
-                robot = createWorld.SingleRobot(start_node, goal_node, path)
+                robot = world.createWorld.SingleRobot(start_node, goal_node, path)
                 all_robots.add(robot)
-                all_robots.draw(createWorld.screen)
+                all_robots.draw(world.createWorld.screen)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
-        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
         # FILLS THE SCREEN WITH A BLANK DISPLAY
-        createWorld.screen.fill(paint.COLOR_WHITE)
+        world.createWorld.screen.fill(world.createWorld.COLOR_WHITE)
         # FILL THE EXPLORED AREA
         for node in path:
             x, y = node
-            rect = pygame.Rect(x * createWorld.cellSizeWidth,
-                               y * createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth,
-                               createWorld.cellSizeWidth)
-            pygame.draw.rect(createWorld.screen,
-                             paint.COLOR_STATEGRAY, rect)
+            rect = pygame.Rect(x * world.createWorld.cellSizeWidth,
+                               y * world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth,
+                               world.createWorld.cellSizeWidth)
+            pygame.draw.rect(world.createWorld.screen,
+                             world.createWorld.COLOR_STATEGRAY, rect)
         # UPDATE THE DISPLAY
         #* Draw the grid
         newWorld.draw_grid()
@@ -1101,19 +1178,23 @@ def run_astar_search(start=world.START, goal=world.GOAL):
         newWorld.draw_workers_zone()
         #* Draw the Delivery Zone
         newWorld.draw_delivery_zone()
+        #* Draw the Recharge Queue Zone
+        newWorld.draw_queue_recharge_zone()
         #* Draw the Recharge Zone
         newWorld.draw_recharge_zone()
+        #* Draw the Pickup Queue Zone
+        newWorld.draw_queue_pickup_zone()
         #* Draw the Pickup Zone
         newWorld.draw_pickup_zone()
         #* Draw the Arrows
         newWorld.draw_arrows()
-        #* Draw Don't Move Zone
-        newWorld.draw_dont_move()
         #* Update the Spriters
+        all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
-        all_robots.draw(createWorld.screen)
-        all_treadmill_items.draw(createWorld.screen)
+        all_robots.draw(world.createWorld.screen)
+        all_workers.draw(world.createWorld.screen)
+        all_treadmill_items.draw(world.createWorld.screen)
         #* Draw the Path from Start to Goal
         current = start_node + path[vec_to_int(start_node)]
         #* Empty Variable to Calculates the Path Lenght
@@ -1126,13 +1207,13 @@ def run_astar_search(start=world.START, goal=world.GOAL):
             #? Euclidean length of the vector
             if path_vector.length_squared() == 1:
                 pathLength += 1
-            x = (current.x * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
-            y = (current.y * createWorld.cellSizeWidth) + (createWorld.cellSizeWidth/2)
+            x = (current.x * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
+            y = (current.y * world.createWorld.cellSizeWidth) + (world.createWorld.cellSizeWidth/2)
             img = newWorld.arrows[vec_to_int(path[(current.x, current.y)])]
             #* Center the image in the cell
             arrow_rec = img.get_rect(center=(x,y))
             #* Show in the screen
-            createWorld.screen.blit(img, arrow_rec)
+            world.createWorld.screen.blit(img, arrow_rec)
             # FIND THE NEXT NODE IN THE PATH
             #* Add to the current node the next node in the path
             current = current + path[vec_to_int(current)]
@@ -1142,87 +1223,98 @@ def run_astar_search(start=world.START, goal=world.GOAL):
         newWorld.draw_goal(goal_node)
         #* Draws the Path Size in the screen
         newWorld.draw_text('A* Search', 15,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-30,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-30,
                            align="bottomright")
         newWorld.draw_text('Path Lenght: {} Node Cells'.format(pathLength), 13,
-                           paint.COLOR_WHITE,
-                           createWorld.screenSizeWidth-110,
-                           createWorld.screenSizeHeight-10,
+                           world.createWorld.COLOR_RED,
+                           world.createWorld.screenSizeWidth-110,
+                           world.createWorld.screenSizeHeight-10,
                            align="bottomright")
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
-def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
-                           robots_qtd=world.ROBOTS_QTD):
+def run_space_astar_search(goal=(goal_x,goal_y),time=(start_time, limit_time),
+                           robots_qtd=robots_no):
     """
     The Space Time A-Star (STA*) Search function of the Path Planning Library, is
     responsible to run the Weighted World and calculate the shortest path in a
-    PyGame Screen with Discretized Time for Multiple Robots
+    PyGame Screen with Discretized Time
         
     Attributes:
 
-        (goal)       (tuple)
-        (time)       (tuple)
-        (robots_qrd) (int)
+        (start) (tuple)
+        (goal) (tuple)
+        (time)  (tuple)
     
     Args:
 
-        (goal)      : Is the position in the Weighted Grid that
-                      we want to achieve
-        (time)      : Is the discretized time limit that we will run the algorithm
-        (robots_qtd): Is the number of robots with want to run the simulation
+        (graph): A Weighted Grid
+        (start): Is the position in the Weighted Grid that
+                    we start the Path Plannign Algorithm
+        (goal) : Is the position in the Weighted Grid that
+                    we want to achieve
+        (time) : Is the time that we will run the algorithm
     
     Vars:
 
-        limit_time (int) = The Maximun Time to Run the Algorithm
+        start_x (int) = The START node position in the X axys (column)
+        start_y (int) = The START node position in the Y axys (row)
+        goal_x  (int)= The GOAL node position in the X axys (column)
+        goal_y  (int)= The GOAL node position in the Y axys (row)
 
     Returns:
 
-       The Shortest Path from the STA* Algorithm for multiple robots loaded in a
+       The Shortest Path from the A-Star* Algorithm loaded in a
        PyGame Screen with World Inputed by the program or user
 
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
     #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
-    time_limit = time
-    time = (0, time_limit)
-    goals = goal
-    print(f'\nThe Time Limit to Run the  Function is: {time_limit}\n')
+    init_t = start_time
+    limit_t = limit_time
+    time = (init_t, limit_t)
+    goal = vec(goal)
+    print(f'\nThe Time Limit to Run the  Function is: {limit_time}\n')
     print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
-    newWorld = createWorld.WeightedGrid()
+    newWorld = world.createWorld.WeightedGrid()
     planning = PathPlanning()
+    # PUT THE FUNCTIONS THAT YOU WANT BELLOW
+    #* THE POSTIION WE WANT
+    #* Using the Find Free Space to find the free space availabe in the
+    free_space = planning.find_free_space(newWorld)
+    #* Start the Workers Class in a Group
+    all_workers = pygame.sprite.Group()
+    #* Init the Workers Spriter Class
+    workers = world.createWorld.Workers(newWorld.world_workers_positions)
+    all_workers.add(workers)
     #* Start the Treadmill Class in a Group
+    treadmill_items = world.createWorld.TreadmillItems()
     all_treadmill_items = pygame.sprite.Group()
-    #* Init the treadmill Sprite
-    treadmill_items = createWorld.TreadmillItems()
     all_treadmill_items.add(treadmill_items)
-    #* Add the Robots Sprite Classes to the Groups
-    all_robots = pygame.sprite.Group()
     # SET THE MULTIPLE PATHS
     global pathsGlobal, robotsStartPos
     pathsGlobal = deque([])
     robotsStartPos = deque([])
     for _ in range(robots_qtd):
-        goal_poped = vec(goals.popleft())
-        #* Using the Find Free Space to find the free space availabe in the
-        free_space = planning.find_free_space(newWorld, goal_poped)
         random_start = random.choice(free_space)
         robotsStartPos.extend([random_start])
-        pathsGlobal.append([planning.space_astar_search(newWorld, goal_poped, random_start, time)])
-        #* Run the Paths and Add The Robots
+        pathsGlobal.append([planning.space_astar_search(newWorld, goal, random_start, time)])
+    #* Add the Robots Sprite Classes to the Groups
+    all_robots = pygame.sprite.Group()
+    for _ in range(robots_qtd):
         start = robotsStartPos.popleft()
         path = pathsGlobal.popleft()
-        robots =  createWorld.MultiRobot(start, goal_poped, path)
+        robots =  world.createWorld.MultiRobot(start, goal, path)
         all_robots.add(robots)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
     while running:
         # ADJUST THE CLOCK
-        createWorld.clock.tick(default.FPS)
+        world.createWorld.clock.tick(world.createWorld.FPS)
         # IF THE PYGAME RECEIVES AN EVENT
         for event in pygame.event.get():
             # IF THE EVENT IS TO QUIT THE APPLICATION
@@ -1245,12 +1337,11 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
                     # Dump the wall list for saving (if needed)
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
-                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                            [(int(loc.x), int(loc.y)) for loc in world.createWorld.obstaclesPosition])
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
-                    pygame.event.clear()
-                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
-                        executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+                    pool = concurrent.futures.ProcessPoolExecutor(max_workers=5)
+                    pool.submit(all_robots.update(all_robots, all_workers, all_treadmill_items, newWorld))
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -1268,12 +1359,11 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
                 #* RIGHT MOUSE TO CHANGE THE GOAL
                 if event.button == 3:
                     goal_node = mouse_pos
-                #path = planning.astar_search(newWorld, goal_node, start_node) 
-        #pygame.event.pump()
+                #path = planning.astar_search(newWorld, goal_node, start_node)
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
-        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(world.createWorld.clock.get_fps()))
         # FILLS THE SCREEN WITH A BLANK DISPLAY
-        createWorld.screen.fill(paint.COLOR_WHITE)
+        world.createWorld.screen.fill(world.createWorld.COLOR_WHITE)
         # UPDATE THE DISPLAY
         #* Draw the grid
         newWorld.draw_grid()
@@ -1285,19 +1375,23 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
         newWorld.draw_workers_zone()
         #* Draw the Delivery Zone
         newWorld.draw_delivery_zone()
+        #* Draw the Recharge Queue Zone
+        newWorld.draw_queue_recharge_zone()
         #* Draw the Recharge Zone
         newWorld.draw_recharge_zone()
+        #* Draw the Pickup Queue Zone
+        newWorld.draw_queue_pickup_zone()
         #* Draw the Pickup Zone
         newWorld.draw_pickup_zone()
         #* Draw the Arrows
         newWorld.draw_arrows()
-        #* Draw Don't Move Zone
-        newWorld.draw_dont_move()
         #* Update the Spriters
+        all_workers.update()
         all_treadmill_items.update()
         #* Draw the Spriters in the Grid
-        all_robots.draw(createWorld.screen)
-        all_treadmill_items.draw(createWorld.screen)
+        all_robots.draw(world.createWorld.screen)
+        all_workers.draw(world.createWorld.screen)
+        all_treadmill_items.draw(world.createWorld.screen)
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
