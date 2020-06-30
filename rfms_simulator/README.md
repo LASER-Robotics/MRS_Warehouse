@@ -1,4 +1,4 @@
-# WarehousePy
+# WarehouseSim.Py
 
 Simulação e discretização de grids para análise de algoritmos de planejamento de trajetória
 
@@ -11,10 +11,23 @@ Simulação e discretização de grids para análise de algoritmos de planejamen
 
 ## Como o Pacote é dividido?
 
-**Examples**: Nesta pasta você pode encontrar um exemplo prático de como o mundo e um algoritmo de trajetória funciona
+**examples**: Nesta pasta você pode encontrar um exemplo prático de como o mundo e um algoritmo de trajetória funciona
 na simulação, e como o mundo é gerado. Para trajetória é utilizado o algoritmo Breadth First Search.
 
 **world**: Pasta em que se encontra a Classe responsável por gerar o mundo discretizado
+
+**old_simulator**: Pasta em que se encontra o primeiro código feito para o mundo conforme a figura abaixo (Backup)
+
+<a href=""><img src="https://i.ibb.co/25SF3LC/simulator-complete.png" align="center" width="300" style="margin-right: 20px;"></a>
+
+## Quais os Módulos disponívels?
+
+**createWorld**: Este módulo é responsável por gerar dois mundos em formato Grid, um Wheighted e outro não, onde
+as configurações e design deste mundo pode ser modificadas pelo módulo a seguir.
+
+**settings**: Este módulo é responsável por armazenar as informações que você deseja gerar para o mundo, onde é
+possível adicionar novas classes de mundo, e são armazenados valores como Quantidade de Robôs, Tamanho do Mundo,
+Cores Utilizadas, Locais dos Obstáculos, Locais dos Trabalhadores, etc.
 
 ## Como utilizar?
 
