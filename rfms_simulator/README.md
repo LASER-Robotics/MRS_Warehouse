@@ -53,3 +53,19 @@ Informações sobre a visualização:
 - A *área em amarelo* é a zona de recarga
 - A *área em vermelho* é a zona de pick
 - A *área azul claro* é a zona de delivery
+
+### Erros Conhecidos
+
+Caso encontre o erro abaixo após iniciar a simulação multi-robôs, basta ignorar e rodar o código novamente
+```
+Traceback (most recent call last):
+  File "main.py", line 1343, in <module>
+    main()
+  File "main.py", line 1340, in main
+    run_space_astar_search()
+  File "main.py", line 1218, in run_space_astar_search
+    robots =  createWorld.MultiRobot(start, goal_poped, path)
+  File "/home/ircbarros/MRS_Warehouse/rfms_simulator/world/createWorld.py", line 999, in __init__
+    self.current_pos = self.path[(self.start_pos)] + self.start
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'pygame.math.Vector2'
+```
