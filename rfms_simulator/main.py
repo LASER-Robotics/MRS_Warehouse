@@ -5,42 +5,27 @@
 Author: Italo Barros
 Email: ircbarros@pm.me
 License: MIT
-
 The Path Planning algorithms for the World Grid Module!
-
 You can run this module using the command line:
-
 $ python3 -m memory_profiler main.py
-
 The program will popups, and you can run your Path Planning tests.
-
 After you closes the PyGame Screen the memory usage will be shown
 at the terminal. For more informations about the memory profiler
 package go to:
-
 https://pypi.org/project/memory-profiler/
-
-
 Classes:
-
     PathPlanning: A class with some Path Planning Algorithms
-
 Comments:
-
 If you are using VS Code, please install the Better Comments Extension:
-
     # Indicates the Method
     #* Indicates some Important Information
     #! Indicates a deprecated or Warning Information
     #? Indicates possible future changes and questions
     #TODO: Indicates the future changes and optimizations
-
 Need to change the code? Refactor? Help the next developer! Use a 
 Style Guide to help others understand of your code. For more informations
 about the Google Style Guide used here go to:
-
 https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
-
 '''
 
 import os
@@ -67,7 +52,7 @@ from world import createWorld, settings
 
 # LOAD THE WORLD VARIABLES
 #* Horizontal Layout
-world = createWorld.world
+world = createWorld.create
 # LOAD THE PYGAME DEFAULTS VARIABLES
 default = settings.PygameDefaults()
 # LOAD THE COLORS FROM THE SETTINGS
@@ -81,27 +66,17 @@ class PathPlanning:
     responsible to return or execute the Free Space, the Breadth-First Search,
     the Dijkstra's, the A-Star (A*), the Space-Time A* (STA*), the Multi Agent
     Pathfinding (MAPF), or the Boid Flocking algorithm.
-
     For more informations of each method, see the specified docstring!
-
     Functions:
-
         find_free_space(graph, position): returns the free space available in
                                           the grid
-
         breath_first_search: returns shortest path executed by the algorithm
-
         dijkstra: returns shortest the path executed by the algorithm
-
         a_star: returns the shortest path executed by the algorithm
-
         sta_star: returns the path executed by the algorithm
-
         mapf: execute the MAPF planning with the sta_star at low level
-
         mapf_swarm: execute the MAPF planning in conjunction with the
                     boid flocking algorithm
-
     """
     def __init__(self):
 
@@ -113,28 +88,21 @@ class PathPlanning:
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns a list of free nodes that can be explored starting from the
         position inputed.
-
         Attributes:
-
             (graph) (Class)
             (position) (tuple)
         
         Args:
-
             (graph): A World Grid Class
             (goal): Is the goal position in the World Grid that
                     we want to find the free space as a tuple
         
         Returns:
-
             A list with the free nodes available in the World Grid
-
         [Example]
             
             If using the default values, this call will provide the following vectors:
-
             $ python3 pathPlanning.py
-
             [<Vector2(0, 0)>, <Vector2(1, 0)>, <Vector2(0, 1)>, <Vector2(2, 0)>, <Vector2(0, 2)>,
             <Vector2(3, 0)>, <Vector2(0, 3)>, <Vector2(4, 0)>, <Vector2(1, 3)>, <Vector2(0, 4)>,
             <Vector2(5, 0)>, <Vector2(4, 1)>, <Vector2(2, 3)>, <Vector2(0, 5)>, <Vector2(6, 0)>,
@@ -149,7 +117,6 @@ class PathPlanning:
             <Vector2(5, 8)>, <Vector2(9, 5)>, <Vector2(8, 6)>, <Vector2(7, 7)>, <Vector2(6, 8)>,
             <Vector2(9, 6)>, <Vector2(8, 7)>, <Vector2(7, 8)>, <Vector2(9, 7)>, <Vector2(8, 8)>,
             <Vector2(9, 8)>]
-
         """
         print('\n__________________ FREE PATH SEARCH STARTED __________________\n')
         # TRANSFORM THE POSITION TO THE PYGAME VECTOR
@@ -190,15 +157,12 @@ class PathPlanning:
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns the Breath First Search for the Node inputed in the header.
-
         Attributes:
-
             (graph) (Class)
             (start) (tuple)
             (goal)  (tuple)
         
         Args:
-
             (graph): A World Grid
             (start): Is the position in the Weighted Grid that
                      we start the Path Plannign Algorithm
@@ -206,10 +170,8 @@ class PathPlanning:
                      we want to achieve
         
         Returns:
-
             The Shortest Path Using Breath First Search for the START
             and GOAL nodes provided
-
         """
     
         print('\n__________________ BREATH FIRST SEARCH STARTED __________________\n')
@@ -281,15 +243,12 @@ class PathPlanning:
         Reads free nodes in World Grid using the find_neighbors(node) function,
         and returns the the shortest path using Dijkstra Search for the Weighted
         Nodes.
-
         Attributes:
-
             (graph) (Class)
             (start) (tuple)
             (goal)  (tuple)
         
         Args:
-
             (graph): A Weighted Grid
             (start): Is the position in the Weighted Grid that
                      we start the Path Plannign Algorithm
@@ -297,10 +256,8 @@ class PathPlanning:
                      we want to achieve
         
         Returns:
-
             The Shortest Path Using Dijkstra Search for the START
             and GOAL nodes provided
-
         """
     
         print("\n__________________ DIJKSTRA'S SEARCH STARTED __________________\n")    
@@ -371,15 +328,12 @@ class PathPlanning:
         """
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
         and returns the shortest path using A-Star (A*) Search for the Weighted Nodes.
-
         Attributes:
-
             (graph) (Class)
             (start) (tuple)
             (goal)  (tuple)
         
         Args:
-
             (graph): A Weighted Grid
             (start): Is the position in the Weighted Grid that
                      we start the Path Plannign Algorithm
@@ -387,10 +341,8 @@ class PathPlanning:
                      we want to achieve
         
         Returns:
-
             The Shortest Path Using A-Star (A*) Search for the START
             and GOAL nodes provided
-
         """
     
         print("\n__________________ A-Star (A*) SEARCH STARTED __________________\n")    
@@ -464,30 +416,24 @@ class PathPlanning:
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
         and returns the shortest path using Space Time A-Star (A*) Search for the
         Weighted Nodes.
-
         Attributes:
-
             (graph) (Class)
             (start) (tuple)
             (goal)  (tuple)
             (time)  (int)
         
         Args:
-
             (graph): A Weighted Grid
             (goal) : Is the position in the Weighted Grid that
                      we want to achieve
             (time) : Is the time limit that to run the algorithm
         
         Vars:
-
             limit_time (int) = The Maximum Time we Can Run The Search
         
         Returns:
-
             The Shortest Path Using A-Star (A*) Search for the START
             and GOAL nodes provided
-
         """
     
         print("\n__________________ SPACE TIME A* (STA*) SEARCH STARTED __________________\n")    
@@ -560,12 +506,9 @@ class PathPlanning:
 def vec_to_int(vector):
     """
     A function that converts a PyGame vector to a integer.
-
     The Dictionary in python to not accept vector values, this function
     will convert the vector to a int value.
-
     Attributes:
-
         (vector) (vec2d)
     
     Args:
@@ -575,7 +518,6 @@ def vec_to_int(vector):
     Returns:
         
         (x,y) (int)
-
     """
     # RETURN THE VECTOR AS INTEGER
     return (int(vector.x), int(vector.y))
@@ -583,9 +525,7 @@ def vec_to_int(vector):
 def manhattan_distance(node_one, node_two):
     """
     A function that calculate the Manhattan Distance used in the A* Heuristic
-
     Attributes:
-
         (node_one) (vec2d)
         (node_two) (vec2d)
     
@@ -596,7 +536,6 @@ def manhattan_distance(node_one, node_two):
     Returns:
         
         The manhattan Distance between two nodes (int)
-
     """
     #* Multiply by ten since the Weighted Graph has this constant
     #? See the cost function at the Wheigted Grid World Class
@@ -610,22 +549,17 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
     to run the Grid World and calculate the shortest path in a PyGame Screen
         
     Attributes:
-
         (start) (tuple)
         (goal) (tuple)
     
     Args:
-
         (start): Is the position in the Weighted Grid that
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
-
     Returns:
-
        The Shortest Path from the Breadth Search Algorithm loaded in a
        PyGame Screen with World Inputed Variables by the program or user
-
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
@@ -794,22 +728,17 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
     to run the Weighted World and calculate the shortest path in a PyGame Screen
         
     Attributes:
-
         (start) (tuple)
         (goal) (tuple)
     
     Args:
-
         (start): Is the position in the Weighted Grid that
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
-
     Returns:
-
        The Shortest Path from the Dijkstra Algorithm loaded in a
        PyGame Screen with World Inputed Variables by the program or user
-
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
@@ -977,22 +906,17 @@ def run_astar_search(start=world.START, goal=world.GOAL):
     to run the Weighted World and calculate the shortest path in a PyGame Screen
         
     Attributes:
-
         (start) (tuple)
         (goal) (tuple)
     
     Args:
-
         (start): Is the position in the Weighted Grid that
                  we start the Path Plannign Algorithm
         (goal) : Is the position in the Weighted Grid that
                  we want to achieve
-
     Returns:
-
        The Shortest Path from the A-Star* Algorithm loaded in a
        PyGame Screen with World Inputed by the program or user
-
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
@@ -1162,27 +1086,21 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
     PyGame Screen with Discretized Time for Multiple Robots
         
     Attributes:
-
         (goal)       (tuple)
         (time)       (tuple)
         (robots_qrd) (int)
     
     Args:
-
         (goal)      : Is the position in the Weighted Grid that
                       we want to achieve
         (time)      : Is the discretized time limit that we will run the algorithm
         (robots_qtd): Is the number of robots with want to run the simulation
     
     Vars:
-
         limit_time (int) = The Maximun Time to Run the Algorithm
-
     Returns:
-
        The Shortest Path from the STA* Algorithm for multiple robots loaded in a
        PyGame Screen with World Inputed by the program or user
-
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
@@ -1305,9 +1223,7 @@ def main():
     """
     The main function, responsible to deal with the Args provided by
     the user at the terminal
-
     Returns:
-
         The simulation required by the user
     """
     # LIST OF COMMAND LINE ARGUMENTS
