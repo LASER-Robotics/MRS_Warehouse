@@ -49,15 +49,15 @@ vec = pygame.math.Vector2
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
 #* Horizontal Layout
-world = settings.LaserTradGridHorizontal()
+create = settings.LaserTradGridHorizontal()
 #* Vertical Layout
-#world = settings.LaserTradGridVertical()
+#create = settings.LaserTradGridVertical()
 #* Flying-V Layout
-#world = settings.LaserFlyingVGrid()
+#create = settings.LaserFlyingVGrid()
 #* Fishbone Layout
-#world = settings.LaserFishboneGrid()
+#create = settings.LaserFishboneGrid()
 #* 100x100 Traditional Layout
-#world = settings.BigWarehouseGrid()
+#create = settings.BigWarehouseGrid()
 # LOAD THE COLORS FROM THE SETTINGS
 paint = settings.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
@@ -162,15 +162,15 @@ class WorldGrid:
             similar to the image on the github
     '''
 
-    def __init__(self, world_grid_size = (world.GRID_WIDTH, world.GRID_HEIGHT),
-                 world_cell_size = (world.CELL_WIDTH, world.CELL_HEIGHT),
-                 world_obstacles_positions = world.OBSTACLES,
-                 world_recharge_positions = world.RECHARGE_ZONE,
-                 world_treadmill_positions = world.TREADMILL_ZONE,
-                 world_workers_positions = world.WORKERS_POS,
-                 world_delivery_positions = world.DELIVERY_ZONE,
-                 world_pickup_positions = world.PICKUP_ZONE,
-                 world_dont_move = world.DONT_MOVE):
+    def __init__(self, world_grid_size = (create.GRID_WIDTH, create.GRID_HEIGHT),
+                 world_cell_size = (create.CELL_WIDTH, create.CELL_HEIGHT),
+                 world_obstacles_positions = create.OBSTACLES,
+                 world_recharge_positions = create.RECHARGE_ZONE,
+                 world_treadmill_positions = create.TREADMILL_ZONE,
+                 world_workers_positions = create.WORKERS_POS,
+                 world_delivery_positions = create.DELIVERY_ZONE,
+                 world_pickup_positions = create.PICKUP_ZONE,
+                 world_dont_move = create.DONT_MOVE):
         # SET THE GRID SIZE USING LIST COMPREHENSION
         self.grid_size_width, self.grid_size_height = world_grid_size[0], world_grid_size[1]
         # SET THE CELL SIZE USING LIST COMPREHENSION
@@ -634,6 +634,7 @@ class WorldGrid:
         self.text_rect = self.text_surface.get_rect(**{align: (x, y)})
         screen.blit(self.text_surface, self.text_rect)
 
+
 class WeightedGrid(WorldGrid):
     '''
     Create a Word Grid in a screen size defined by the user
@@ -713,15 +714,15 @@ class WeightedGrid(WorldGrid):
         user.
     '''
 
-    def __init__(self, world_grid_size = (world.GRID_WIDTH, world.GRID_HEIGHT),
-                 world_cell_size = (world.CELL_WIDTH, world.CELL_HEIGHT),
-                 world_obstacles_positions = world.OBSTACLES,
-                 world_recharge_positions = world.RECHARGE_ZONE,
-                 world_treadmill_positions = world.TREADMILL_ZONE,
-                 world_workers_positions = world.WORKERS_POS,
-                 world_delivery_positions = world.DELIVERY_ZONE,
-                 world_pickup_positions = world.PICKUP_ZONE,
-                 world_dont_move = world.DONT_MOVE):
+    def __init__(self, world_grid_size = (create.GRID_WIDTH, create.GRID_HEIGHT),
+                 world_cell_size = (create.CELL_WIDTH, create.CELL_HEIGHT),
+                 world_obstacles_positions = create.OBSTACLES,
+                 world_recharge_positions = create.RECHARGE_ZONE,
+                 world_treadmill_positions = create.TREADMILL_ZONE,
+                 world_workers_positions = create.WORKERS_POS,
+                 world_delivery_positions = create.DELIVERY_ZONE,
+                 world_pickup_positions = create.PICKUP_ZONE,
+                 world_dont_move = create.DONT_MOVE):
  
         super().__init__()
         # CREATE A DIC TO SAVE THE NODE WEIGHTS
@@ -765,6 +766,7 @@ class WeightedGrid(WorldGrid):
         else:
             #* Multiply to 10 to work only with integers
             return self.weights.get(to_node, 0) + 14
+
 
 class PriorityQueue:
     '''
@@ -824,6 +826,7 @@ class PriorityQueue:
         #* Check if the search ends
         return len(self.nodes) == 0
 
+
 class SingleRobot(pygame.sprite.Sprite):
     '''
     Adjust the Robot Icon and draw in the Grid as a Sprite
@@ -865,8 +868,8 @@ class SingleRobot(pygame.sprite.Sprite):
         # SET THE ROTATION
         self.rotation = 0
         # SET THE SPEED
-        self.x_speed = world.MAX_VELOCITY
-        self.y_speed = world.MAX_VELOCITY
+        self.x_speed = create.MAX_VELOCITY
+        self.y_speed = create.MAX_VELOCITY
         # SET THE PATH HEAP WHERE THE ROBOT WILL MOVE
         self.robot_path_pop = deque([])
         # SET the PATH for the Robot as Global
@@ -913,19 +916,19 @@ class SingleRobot(pygame.sprite.Sprite):
             #* Move to Left
             if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
 
-                self.rect.x += world.MAX_VELOCITY
+                self.rect.x += create.MAX_VELOCITY
             #* Move to Right
             elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
 
-                self.rect.x -= world.MAX_VELOCITY
+                self.rect.x -= create.MAX_VELOCITY
             #* Move to Top
             elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
 
-                self.rect.y -= world.MAX_VELOCITY
+                self.rect.y -= create.MAX_VELOCITY
             #* Move to Bottom
             else:
 
-                self.rect.y += world.MAX_VELOCITY
+                self.rect.y += create.MAX_VELOCITY
         #* Finish the Animation
         except:
             print('------------------')
@@ -934,9 +937,11 @@ class SingleRobot(pygame.sprite.Sprite):
             print('To RESTART change the robot start or goal position and press SPACE\n')
             print('To QUIT close the Screen\n')
 
+
 global allPathsVectors, allRobotsPaths
 allPathsVectors = deque([])
 allRobotsPaths = deque([])
+
 
 class MultiRobot(pygame.sprite.Sprite):
     '''
@@ -984,8 +989,8 @@ class MultiRobot(pygame.sprite.Sprite):
         # SET THE ROTATION
         self.rotation = 0
         # SET THE SPEED
-        self.x_speed = world.MAX_VELOCITY
-        self.y_speed = world.MAX_VELOCITY
+        self.x_speed = create.MAX_VELOCITY
+        self.y_speed = create.MAX_VELOCITY
         # SET the PATH and the PATH VECTOR as Global
         global robotPath, pathVector
         robotPath = deque([])
@@ -1041,24 +1046,23 @@ class MultiRobot(pygame.sprite.Sprite):
                 #* Move to Left
                 if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
 
-                    self.rect.x += world.MAX_VELOCITY
+                    self.rect.x += create.MAX_VELOCITY
 
                 #* Move to Right
                 elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
 
-                    self.rect.x -= world.MAX_VELOCITY
+                    self.rect.x -= create.MAX_VELOCITY
 
                 #* Move to Top
                 elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
 
-                    self.rect.y -= world.MAX_VELOCITY
+                    self.rect.y -= create.MAX_VELOCITY
                 #* Move to Bottom
                 else:
 
-                    self.rect.y += world.MAX_VELOCITY
+                    self.rect.y += create.MAX_VELOCITY
                 time.sleep(0.5)
-                #pygame.event.clear()
-
+        # RUN THREADED
         thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
         thread.submit(run)
 

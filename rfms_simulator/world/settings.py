@@ -82,6 +82,7 @@ class LaserTradGridHorizontal(object):
         #? In this case is the Column where the worker is located
         self.DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10,4), (10, 2), (10,0)]
 
+
 class LaserTradGridVertical(object):
     '''
     Class responsible to save the World Variables for
@@ -93,7 +94,7 @@ class LaserTradGridVertical(object):
         #* START POINT
         self.START = (6,7)
         #* GOAL POINT
-        self.GOAL = (9,3)
+        self.GOAL = deque([(9,1), (9, 3), (9,5)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -146,7 +147,7 @@ class LaserFlyingVGrid(object):
         #* START POINT
         self.START = (6,7)
         #* GOAL POINT
-        self.GOAL = (9,3)
+        self.GOAL = deque([(9,1), (9, 3), (9,5)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -186,6 +187,7 @@ class LaserFlyingVGrid(object):
         #? In this case is the Column where the worker is located
         self.DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10,4), (10, 2), (10,0)]
 
+
 class LaserFishboneGrid(object):
     '''
     Class responsible to save the World Variables for
@@ -197,7 +199,7 @@ class LaserFishboneGrid(object):
         #* START POINT
         self.START = (6,7)
         #* GOAL POINT
-        self.GOAL = (9,3)
+        self.GOAL = deque([(9,1), (9, 3), (9,5)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -292,6 +294,7 @@ class BigWarehouseGrid(object):
         #? In this case is the Column where the worker is located
         self.DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10,4), (10, 2), (10,0)]
 
+
 class PygameDefaults(object):
     '''
     Class responsible to save some Pygame Variables
@@ -301,7 +304,7 @@ class PygameDefaults(object):
         self.FPS = 30
         # DEFINE THE FONT NAME
         self.font_name = pygame.font.match_font('dejavusans')
- 
+
 
 class Colors(object):
     '''
