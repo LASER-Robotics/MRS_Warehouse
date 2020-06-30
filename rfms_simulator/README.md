@@ -37,6 +37,15 @@ Durante a simulação é possível modificar a localização do robô, o goal de
 
 - O _botão central (scroll) do mouse_ é responśavel por mudar a localização do robô
 
+### Sobre a Simulação Multi-Robôs
+
+As seguintes simulações utilizam sistemas multi-robôs, onde é possível executar a simulação ao pressionar "ESPAÇO" no teclado:
+
+```
+python3 main.py -stastar
+```
+
+
 Informações sobre a visualização:
 
 - A *área em cinza escuro* é o caminho que foi explorado pelo algorítmo
