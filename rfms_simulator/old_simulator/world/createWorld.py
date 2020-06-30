@@ -38,32 +38,91 @@ import random
 import schedule
 import threading
 import concurrent.futures
-from world import settings
 from multiprocessing import Process
 from collections import deque
 
+
 # GLOBAL VARIABLES
-# LOAD THE PyGAME VETOR2 LIB
+#* Load the PyGame Vector2 lib
 vec = pygame.math.Vector2
-# LOAD THE WORLD VARIABLES
-#? You can change here the world you want to launch. To create
-#? a new world, just add a new Class to the settings module
-#* Horizontal Layout
-world = settings.LaserTradGridHorizontal()
-#* Vertical Layout
-#world = settings.LaserTradGridVertical()
-#* Flying-V Layout
-#world = settings.LaserFlyingVGrid()
-#* Fishbone Layout
-#world = settings.LaserFishboneGrid()
-#* 100x100 Traditional Layout
-#world = settings.BigWarehouseGrid()
-# LOAD THE COLORS FROM THE SETTINGS
-paint = settings.Colors()
-# LOAD THE PYGAME DEFAULTS VARIABLES
-default = settings.PygameDefaults()
+#* START POINT
+START = (0,0)
+#* GOAL POINT
+GOAL = (9,3)
+#* SET the DEFAULT Grid Width
+GRID_WIDTH = 12
+#* SET the DEFAULT Grid Height
+GRID_HEIGHT = 9
+#* SET the DEFAULT Width and Height of the Grid Cells
+CELL_WIDTH = 100
+CELL_HEIGHT = 100
+#* SET the DEFAULT Margin value
+DEFAULT_CELL_MARGIN = 1
+#* SET the DEFAULT World Colors
+COLOR_BLACK = (0, 0, 0)
+COLOR_WHITE = (255, 255, 255)
+COLOR_GREEN = (0, 255, 0)
+COLOR_RED = (255, 0, 0)
+COLOR_CYAN = (0, 255, 255)
+COLOR_MAGENTA = (255, 0, 255)
+COLOR_YELLOW = (255, 255, 0)
+COLOR_YELLOW_ROYAL = (250, 218, 94)
+#* The Recharge Zone Color
+COLOR_SOFT_YELLOW = (239, 217, 127)
+COLOR_DARKGRAY = (40, 40, 40)
+COLOR_MEDGRAY = (75, 75, 75)
+COLOR_STATEGRAY = (211,211,211)
+#* The Obstacles Color
+COLOR_LIGHTGRAY = (170, 170, 169)
+#* The Workers Color
+COLOR_PRUSSIAN = (9, 71, 99)
+#* The Delivery Zone Color
+COLOR_CAROLINA = (118, 180, 214)
+#* The Treadmill Zone Color
+COLOR_INDEPENDENCE = (64, 90, 155)
+#* The Pickup Zone Color
+COLOR_VERMILION = (163, 44, 50)
+#* The Dont Move Zone Color
+COLOR_GRAYISH = (226, 230, 230)
+#? For more RGB Colors go to:
+# https://graf1x.com/shades-of-red-color-palette-hex-rgb-code/
+#? To translate Corors to the Decimal RGB Format go to:
+# https://www.colorhexa.com/
+#* SET the DEFAULT FPS
+FPS = 30
+#* SET the DEFAUL VELOCITY
+MAX_VELOCITY = 100
+# OBSTACLES AND SOME CELL POSITIONS IN THE GRID
+#! BE CAREFUL AND NOT TO SET CELL VALUE TO MORE THAN ONE VARIABLE!
+#! ALSO CHECK THE FREE SPACE AVAILABLE!
+#* SET the DEFAULT Obstacles (Pods)
+OBSTACLES = [(1,1), (2,1), (3,1), (1,2), (2,2), (3,2),
+             (5,1), (6,1), (7,1), (5,2), (6,2), (7,2),
+             (1,4), (2,4), (3,4), (1,5), (2,5), (3,5),
+             (5,4), (6,4), (7,4), (5,5), (6,5), (7,5)]
+#* SET the DEFAULT Treadmill Zone
+TREADMILL_ZONE = [(11, 8), (11, 7), (11, 6), (11, 5), (11, 4),
+                  (11, 3), (11, 2), (11, 1), (11, 0)]
+#* SET the DEFAULT Workers Zone
+WORKERS_POS = [(10, 3)]
+#* SET the DEFAULT Delivery Zone
+DELIVERY_ZONE = [(9,2),(9,3), (9,4)]
+#* SET the DEFAULT Recharge Zone Queue
+RECHARGE_ZONE_QUEUE = [(0, 7), (1, 7), (2, 7), (3, 7)]
+#* SET the DEFAUL Recharge Zoen
+RECHARGE_ZONE = [(0, 8), (1, 8), (2, 8), (3, 8)]
+#* SET the DEFAULT Pickup Zone Queue (Where the robots fills the empty pods)
+PICKUP_ZONE_QUEUE = [(4, 7), (5, 7), (6, 7), (7, 7)]
+#* SET the DEFAULT Pickup Zone
+PICKUP_ZONE = [(4, 8), (5, 8), (6, 8), (7, 8)]
+#* SET the DEFAUL Cells that the Robot Can't Move
+#? In this case is the Column where the worker is located
+DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10, 5), (10,4),
+             (10, 2), (10, 1), (10,0)]
 # CENTER THE GRID TO THE MIDDLE OF THE SCREEN
 os.environ['SDL_VIDEO_CENTERED'] = '1'
+# DEFINE THE FONT NAME
+font_name = pygame.font.match_font('dejavusans')
 # INIT THE PYGAME MODULE
 pygame.init()
 # INIT THE PYGAME CLOCK
@@ -79,71 +138,65 @@ class WorldGrid:
 
      (GRID_WIDTH, GRID_HEIGHT) (tuple)
      (CELL_WIDTH, CELL_HEIGHT) (tuple)
-     [(OBSTACLE_1_x, OBSTACLE_1_y), ... ,(OBSTACLE_X_x, OBSTACLE_X_y)]     (list)
-     [(RECHARGE_1_x, RECHARGE_1_y), ... ,(RECHARGE_X_x, RECHARGE_X_y)]     (list)
-     [(TREADMILL_1_x, TREADMILL_1_y), ... ,(TREADMILL_X_x, TREADMILL_X_y)] (list)
-     [(WORKERS_1_x, WORKERS_1_y), ... ,(WORKERS_X_x, WORKERS_X_y)]         (list)
-     [(DELIVERY_1_x, DELIVERY_1_y), ... ,(DELIVERY_X_x, DELIVERY_X_y)]     (list)
-     [(PICKUP_1_x, PICKUP_1_y), ... ,(PICKUP_X_x, PICKUP_X_y)]             (list)
-     [(DONT_MOVE_1_x, DONT_MOVE_1_y), ... ,(DONT_MOVE_X_x, DONT_MOVE_X_y)] (list)
+     [(OBSTACLE1_x, OBSTACLE1_y), ... ,(OBSTACLEX_x, OBSTACLEY_y)] (list)
+     [(RECHARGE1_x, RECHARGE1_y), ... ,(RECHARGEX_x, RECHARGEY_y)] (list)
+     [(TREADMILL1_x, TREADMILL1_y), ... ,(TREADMILLX_x, TREADMILLY_y)] (list)
+     [(WORKERS1_x, WORKERS1_y), ... ,(WORKERSX_x, WORKERSY_y)] (list)
+     [(DELIVERY1_x, DELIVERY1_y), ... ,(DELIVERYX_x, DELIVERYY_y)] (list)
+     [(PICKUP1_x, PICKUP1_y), ... ,(PICKUPX_x, PICKUPY_y)] (list)
+     [(DONTMOVE_x, DELIVERY1_y), ... ,(DELIVERYX_x, DELIVERYY_y)] (list)
     
         Where:
 
-            GRID_WIDTH  (int)
+            GRID_WIDTH (int)
             GRID_HEIGHT (int)
-            CELL_WIDTH  (int)
+            CELL_WIDTH (int)
             CELL_HEIGHT (int)
-            OBSTACLE_x  (int)
-            OBSTACLE_y  (int)
-            RECHARGE_x  (int)
-            RECHARGE_y  (int)
-            TREADMILL_x (int)
-            TREADMILL_y (int)
-            WORKERS_x   (int)
-            WORKERS_y   (int)
-            DELIVERY_x  (int)
-            DELIVERY_y  (int)
-            PICKUP_x    (int)
-            PICKUP_y    (int)
-            DONT_MOVE_x (int)
-            DONT_MOVE_y (int)
+            OBSTACLEX_x (int)
+            OBSTACLEY_x (int)
+            RECHARGEX_x (int)
+            RECHARGEY_x (int)
+            TREADMILLX_x (int)
+            TREADMILLY_x (int)
+            WORKERSX_x (int)
+            WORKERSY_x (int)
+            DELIVERYX_x (int)
+            DELIVERYY_x (int)
+            PICKUPX_x (int)
+            PICKUPY_x (int)
 
     Args:
 
-        (GRID_WIDTH, GRID_SIZE):          An tuple with the desired GRID size
-        (CELL_WIDTH, CELL_HEIGHT):        An tuple with the desired CELL size
-        (OBSTACLE_X_x, OBSTACLE_X_y):     An tuple with the desired OBSTACLES positions
-        (RECHARGE_X_x, RECHARGE_X_y):     An tuple with the desired RECHARGE positions
-        (TREADMILL_X_x, TREADMILL_X_y):   An tuple with the desired TREADMILL position
-        (WORKERS_X_x, WORKERS_X_y):       An tuple with the desired WORKERS positions
-        (DELIVERY_X_x, DELIVERY_X_y):     An tuple with the desired DELIVERY positions
-        (PICKUP_X_x, WORKERS_X_y):        An tuple with the desired PICKUP positions
-        (DONT_MOVE_X_x, DONT_MOVE_X_y):   An tuple with the desired DON'T MOVE positions
+        (GRID_WIDTH, GRID_SIZE): An tuple with the desired grid size
+        (CELL_WIDTH, CELL_HEIGHT): An tuple with the desired cell size
+        (OBSTACLEX_x, OBSTACLEY_y): An tuple with the desired obstacles positions
+        (RECHARGEX_x, RECHARGEX_y): An tuple with the desired recharge stations positions
+        (TREADMILLX_x, TREADMILLY_y): An tuple with the desired treadmill position
+        (WORKERSX_x, WORKERSY_y): An tuple with the desired workers positions
+        (DELIVERYX_x, DELIVERYY_y): An tuple with the desired delivery points positions
 
     Vars:
 
-        GRID_WIDTH    = The desired GRID WIDTH
-        GRID_HEIGHT   = The desired GRID HEIGHT
-        CELL_WIDTH    = The desired CELL WIDTH
-        CELL_HEIGHT   = The desired CELL HEIGHT
-        OBSTACLE_X_x  = The OBSTACLE location "X" at Grid pos. X  (column)
-        OBSTACLE_X_y  = The  OBSTACLE location  "X" at Grid in pos. Y (row)
-        RECHARGE_X_x  = The RECHARGE location "X" at Grid pos. X  (column)
-        RECHARGE_X_y  = The RECHARGE location  "X" at Grid in pos. Y (row)
-        TREADMILL_X_x = The TREADMILL location "X" at Grid pos. X  (column)
-        TREADMILL_X_y = The TREADMILL location  "X" at Grid in pos. Y (row)
-        WORKERS_X_x   = The WORKERS location "X" at Grid pos. X  (column)
-        WORKERS_X_y   = The WORKERS location  "X" at Grid in pos. Y (row)
-        DELIVERY_X_x  = The DELIVERY location "X" at Grid pos. X  (column)
-        DELIVERY_X_y  = The DELIVERY  location  "X" at Grid in pos. Y (row)
-        PICKUP_X_x    = The PICKUP location "X" at Grid pos. X (column)
-        PICKUP_X_y    = The PICKUP location  "X" at Grid in pos. Y (row)
+        GRID_WIDTH = The desired grid WIDTH
+        GRID_HEIGHT = The desired grid HEIGHT
+        CELL_WIDTH = The desired grid WIDTH
+        CELL_HEIGHT = The desired grid HEIGHT
+        OBSTACLEX_x = The Obstacle location on the Grid in pos. X
+        OBSTACLEY_y = The Obstacle location on the Grid in pos. Y
+        RECHARGEX_x = The Recharge location on the Grid in pos. X
+        RECHARGEY_y = The Recharge location on the Grid in pos. Y
+        TREADMILLX_x = The Treadmill location on the Grid in pos. X
+        TREADMILLY_y = The Treadmill location on the Grid in pos. Y
+        WORKERSX_x = The Workers location on the Grid in pos. X
+        WORKERSY_y = The Workers location on the Grid in pos. Y
+        DELIVERYX_x = The Delivery location on the Grid in pos. X
+        DELIVERYY_y = The Delivery location on the Grid in pos. Y
 
     Returns:
 
         A Node Grid Graph with Obstacles, Recharge Zone, Treadmill Zone,
-        Workers Zone, Delivery Zone, Pickup Zone and Don't Move zones with
-        size e height inputed by the user WITHOUT SCREEN VISUALIZATION!
+        Workers Zone, Delivery Zone with size e height inputed by the
+        user WITHOUT SCREEN VISUALIZATION!
 
     [Examples]
 
@@ -158,25 +211,29 @@ class WorldGrid:
         DEFAULT VALUES:
         import grid
         world = grid.WorldGrid()
-        >>> Will show the DEFAULT grid (12x8) with cell size 100x100 and
+        >>> Will show the DEFAULT grid (12x9) with cell size 100x100 and
             similar to the image on the github
     '''
 
-    def __init__(self, world_grid_size = (world.GRID_WIDTH, world.GRID_HEIGHT),
-                 world_cell_size = (world.CELL_WIDTH, world.CELL_HEIGHT),
-                 world_obstacles_positions = world.OBSTACLES,
-                 world_recharge_positions = world.RECHARGE_ZONE,
-                 world_treadmill_positions = world.TREADMILL_ZONE,
-                 world_workers_positions = world.WORKERS_POS,
-                 world_delivery_positions = world.DELIVERY_ZONE,
-                 world_pickup_positions = world.PICKUP_ZONE,
-                 world_dont_move = world.DONT_MOVE):
+    def __init__(self, world_grid_size = (GRID_WIDTH, GRID_HEIGHT),
+                 world_cell_size = (CELL_WIDTH, CELL_HEIGHT),
+                 world_obstacles_positions = OBSTACLES,
+                 world_recharge_queue_positions = RECHARGE_ZONE_QUEUE,
+                 world_recharge_positions = RECHARGE_ZONE,
+                 world_treadmill_positions = TREADMILL_ZONE,
+                 world_workers_positions = WORKERS_POS,
+                 world_delivery_positions = DELIVERY_ZONE,
+                 world_pickup_queue_positions = PICKUP_ZONE_QUEUE,
+                 world_pickup_positions = PICKUP_ZONE,
+                 world_dont_move = DONT_MOVE):
         # SET THE GRID SIZE USING LIST COMPREHENSION
         self.grid_size_width, self.grid_size_height = world_grid_size[0], world_grid_size[1]
         # SET THE CELL SIZE USING LIST COMPREHENSION
         self.cell_size_width, self.cell_size_height = world_cell_size[0], world_cell_size[1]
         # SET  THE OBSTACLES POSITION
         self.world_obstacles_position = world_obstacles_positions
+        # SET THE RECHARGE ZONE QUEUE POSITION
+        self.world_recharge_queue_position = world_recharge_queue_positions
         # SET THE RECHARGE ZONE POSITION
         self.world_recharge_position = world_recharge_positions
         # SET THE TREADMILL POSITION
@@ -185,6 +242,8 @@ class WorldGrid:
         self.world_workers_positions = world_workers_positions
         # SET THE DELIVERY POSITIONS
         self.world_delivery_positions = world_delivery_positions
+        # SET THE PICKUP QUEUE POSITIONS
+        self.world_pickup_queue_positions = world_pickup_queue_positions
         # SET THE PICKUP POSITIONS
         self.world_pickup_positions = world_pickup_positions
         # SET THE CANT MOVE POSITIONS
@@ -193,8 +252,6 @@ class WorldGrid:
         self.obstaclesPosition = []
         for obstacle in self.world_obstacles_position:
             self.obstaclesPosition.append(vec(obstacle))
-        global obstaclesPositionGlobal
-        obstaclesPositionGlobal = self.obstaclesPosition
         # SET THE TREADMILL VECTOR
         global treadmillPositionGlobal
         treadmillPositionGlobal = []
@@ -215,6 +272,14 @@ class WorldGrid:
         dontMoveGlobal = []
         for dont_move in self.world_dont_move:
             dontMoveGlobal.append(vec(dont_move))
+       #* SET THE RECHARGE AND PICKUP QUEUE ZONE VECTOR
+        global rechargeQueuePositionGlobal, pickupQueuePositionGlobal
+        rechargeQueuePositionGlobal = []
+        for recharge_queue_position in self.world_recharge_queue_position:
+            rechargeQueuePositionGlobal.append(vec(recharge_queue_position))
+        pickupQueuePositionGlobal = []
+        for pickup_queue_position in self.world_pickup_queue_positions:
+            pickupQueuePositionGlobal.append(vec(pickup_queue_position))
        #* SET THE RECHARGE AND PICKUP ZONE VECTOR
         global rechargePositionGlobal, pickupPositionGlobal
         rechargePositionGlobal = []
@@ -289,10 +354,12 @@ class WorldGrid:
         print('Grid Objects:')
         print('.................')
         print(f'The Obstacles are located in:\n {self.obstaclesPosition}\n')
+        print(f'The Recharge Queue Zone are located in:\n {rechargeQueuePositionGlobal}\n')
         print(f'The Recharge Zone are located in:\n {rechargePositionGlobal}\n')
         print(f'The Treadmill Zone are located in:\n {treadmillPositionGlobal}\n')
         print(f'The Workers Zone are located in:\n {workersPositionGlobal}\n')
         print(f'The Delivery Zone are located in:\n {deliveryPositionGlobal}\n')
+        print(f'The Pickup Queue Zone are located in:\n {pickupQueuePositionGlobal}\n')
         print(f'The Pickup Zone are located in:\n {pickupPositionGlobal}\n')
         print(f"The Grid Cells block to robot movement are:\n {dontMoveGlobal}\n")
 
@@ -361,7 +428,7 @@ class WorldGrid:
             # Draw a obstacle as a retancle with format of the cell size
             rect_obstacle = pygame.Rect(obstacle * cellSizeWidth,
                                         (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_LIGHTGRAY, rect_obstacle)
+            pygame.draw.rect(screen, COLOR_LIGHTGRAY, rect_obstacle)
             self.obstacle_vector = vec(obstacle)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
@@ -409,21 +476,10 @@ class WorldGrid:
         '''
         # For the cells in the worker zone do
         for workers_zone in workersPositionGlobal:
-            self.workers_vector = vec(workers_zone)
             # Draw a obstacle as a retancle with format of the cell size
             rect_workers = pygame.Rect(workers_zone * cellSizeWidth,
                                        (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_INDEPENDENCE, rect_workers)
-            self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
-            # LOAD THE ROBOT IMG TO THE PYGAME MODULE
-            self.worker_img = pygame.image.load(os.path.join(self.icon_dir, 'worker.png')).convert_alpha()
-            # SCALE THE IMAGE
-            self.worker_img = pygame.transform.scale(self.worker_img, (50,50))
-            # FILL THE IMAGE WITH THE BLEND MODULE
-            self.worker_center = ((self.workers_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
-                                  (self.workers_vector.y *cellSizeWidth) + (cellSizeHeight / 2))
-            screen.blit(self.worker_img,
-                        self.worker_img.get_rect(center = self.worker_center))
+            pygame.draw.rect(screen, COLOR_PRUSSIAN, rect_workers)
 
     def draw_delivery_zone(self):
         '''
@@ -438,7 +494,7 @@ class WorldGrid:
             # Draw a obstacle as a retancle with format of the cell size
             rect_delivery = pygame.Rect(delivery_zone * cellSizeWidth,
                                         (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_CAROLINA, rect_delivery)
+            pygame.draw.rect(screen, COLOR_CAROLINA, rect_delivery)
 
     def draw_grid(self):
         '''
@@ -451,39 +507,94 @@ class WorldGrid:
         # FOR X VALUES IN RANGE OF SCREEN WIDTH AND CELL WIDTH DO
         for x in range(0, screenSizeWidth, cellSizeWidth):
             # DRAW A LINE IN THE SCREEN WITH COLOR FROM 0 TO THE HEIGHT
-            pygame.draw.line(screen, paint.COLOR_DARKGRAY, (x, 0), (x, screenSizeHeight))
+            pygame.draw.line(screen, COLOR_DARKGRAY, (x, 0), (x, screenSizeHeight))
         # FOR X VALUES IN RANGE OF SCREEN HEIGHT AND CELL HEIGHT DO
         for y in range(0, screenSizeHeight, cellSizeHeight):
             # DRAW A LINE IN THE SCREEN WITH COLOR FROM 0 TO THE WIDTH
-            pygame.draw.line(screen, paint.COLOR_DARKGRAY, (0, y), (screenSizeWidth, y))
+            pygame.draw.line(screen, COLOR_DARKGRAY, (0, y), (screenSizeWidth, y))
 
-    def draw_recharge_zone(self):
+    def draw_queue_recharge_zone(self):
         '''
-        Draw the Recharge Zone cells in the grid
+        Draw the Recharge Queue zone in the grid
     
         Returns:
 
-            The Recharge Zone cells inserted in the Main Screen
+            The Recharge Queue Zone cells inserted in the Main Screen
+        '''
+        # For the cells in the delivery zone do
+        for queue_recharge_zone in rechargeQueuePositionGlobal:
+            # Draw a obstacle as a retancle with format of the cell size
+            rect_recharge = pygame.Rect(queue_recharge_zone * cellSizeWidth,
+                                        (cellSizeWidth-1, cellSizeHeight-1))
+            pygame.draw.rect(screen, COLOR_SOFT_YELLOW, rect_recharge)
+            self.queue_recharge_vector = vec(queue_recharge_zone)
+            # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
+            self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
+            # LOAD THE ROBOT IMG TO THE PYGAME MODULE
+            self.queue_recharge_arrow = pygame.image.load(os.path.join(self.icon_dir,
+                                                          'arrow_white.png')).convert_alpha()
+            # SCALE THE IMAGE
+            self.queue_recharge_arrow = pygame.transform.scale(self.queue_recharge_arrow,
+                                                               (30,30))
+            # FILL THE IMAGE WITH THE BLEND MODULE
+            self.start_center = ((self.queue_recharge_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
+                                (self.queue_recharge_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
+            screen.blit(self.queue_recharge_arrow,
+                        self.queue_recharge_arrow.get_rect(center=self.start_center))
+
+    def draw_recharge_zone(self):
+        '''
+        Draw the Pickup Zone cells in the grid
+    
+        Returns:
+
+            The Pickup Zone cells inserted in the Main Screen
         '''
         # For the cells in the pickup zone do
         for recharge_zone in rechargePositionGlobal:
-            rect_recharge = pygame.Rect(recharge_zone * cellSizeWidth,
-                                        (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_VERMILION, rect_recharge)
             self.recharge_vector = vec(recharge_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.recharge_img = pygame.image.load(os.path.join(self.icon_dir,
-                                                          'arrow_white.png')).convert_alpha()
+                                                          'recharge.png')).convert_alpha()
             # SCALE THE IMAGE
             self.recharge_img = pygame.transform.scale(self.recharge_img,
-                                                       (30,30))
+                                                       (90,90))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.recharge_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.recharge_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
             screen.blit(self.recharge_img,
                         self.recharge_img.get_rect(center=self.start_center))
+
+    def draw_queue_pickup_zone(self):
+        '''
+        Draw the Pickup Queue Zone cells in the grid
+    
+        Returns:
+
+            The Pickup Queue Zone cells inserted in the Main Screen
+        '''
+        # For the cells in the pickup zone do
+        for queue_pickup_zone in pickupQueuePositionGlobal:
+            # Draw a obstacle as a retancle with format of the cell size
+            rect_pickup = pygame.Rect(queue_pickup_zone * cellSizeWidth,
+                                      (cellSizeWidth-1, cellSizeHeight-1))
+            pygame.draw.rect(screen, COLOR_VERMILION, rect_pickup)
+            self.queue_pickup_vector = vec(queue_pickup_zone)
+            # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
+            self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
+            # LOAD THE ROBOT IMG TO THE PYGAME MODULE
+            self.queue_pickup_arrow = pygame.image.load(os.path.join(self.icon_dir,
+                                                          'arrow_white.png')).convert_alpha()
+            # SCALE THE IMAGE
+            self.queue_pickup_arrow = pygame.transform.scale(self.queue_pickup_arrow,
+                                                             (30,30))
+            # FILL THE IMAGE WITH THE BLEND MODULE
+            self.start_center = ((self.queue_pickup_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
+                                (self.queue_pickup_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
+            screen.blit(self.queue_pickup_arrow,
+                        self.queue_pickup_arrow.get_rect(center=self.start_center))
 
     def draw_pickup_zone(self):
         '''
@@ -495,39 +606,20 @@ class WorldGrid:
         '''
         # For the cells in the pickup zone do
         for pickup_zone in pickupPositionGlobal:
-            # Draw a obstacle as a retancle with format of the cell size
-            rect_pickup = pygame.Rect(pickup_zone * cellSizeWidth,
-                                      (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_SOFT_YELLOW, rect_pickup)
             self.pickup_vector = vec(pickup_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.pickup_img = pygame.image.load(os.path.join(self.icon_dir,
-                                                             'arrow_white.png')).convert_alpha()
+                                                             'pickup.png')).convert_alpha()
             # SCALE THE IMAGE
             self.pickup_img = pygame.transform.scale(self.pickup_img,
-                                                             (30,30))
+                                                             (90,90))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.pickup_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.pickup_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
             screen.blit(self.pickup_img,
                         self.pickup_img.get_rect(center=self.start_center))
-
-    def draw_dont_move(self):
-        '''
-        Draw the DON'T MOVE zones cells in the grid
-
-        Returns:
-
-            The Don't Move cells draw and inserted in the Main Screen
-        '''
-        # For the cells in the delivery zone do
-        for dont_move_zone in dontMoveGlobal:
-            # Draw a obstacle as a retancle with format of the cell size
-            rect_dont_move = pygame.Rect(dont_move_zone * cellSizeWidth,
-                                         (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_PRUSSIAN, rect_dont_move)
 
     def draw_arrows(self):
         '''
@@ -629,7 +721,7 @@ class WorldGrid:
             align (str): The Alignment Desired
 
         '''
-        self.font = pygame.font.Font(default.font_name, size)
+        self.font = pygame.font.Font(font_name, size)
         self.text_surface = self.font.render(text, True, color)
         self.text_rect = self.text_surface.get_rect(**{align: (x, y)})
         screen.blit(self.text_surface, self.text_rect)
@@ -646,65 +738,59 @@ class WeightedGrid(WorldGrid):
 
      (GRID_WIDTH, GRID_HEIGHT) (tuple)
      (CELL_WIDTH, CELL_HEIGHT) (tuple)
-     [(OBSTACLE_1_x, OBSTACLE_1_y), ... ,(OBSTACLE_X_x, OBSTACLE_X_y)]     (list)
-     [(RECHARGE_1_x, RECHARGE_1_y), ... ,(RECHARGE_X_x, RECHARGE_X_y)]     (list)
-     [(TREADMILL_1_x, TREADMILL_1_y), ... ,(TREADMILL_X_x, TREADMILL_X_y)] (list)
-     [(WORKERS_1_x, WORKERS_1_y), ... ,(WORKERS_X_x, WORKERS_X_y)]         (list)
-     [(DELIVERY_1_x, DELIVERY_1_y), ... ,(DELIVERY_X_x, DELIVERY_X_y)]     (list)
-     [(PICKUP_1_x, PICKUP_1_y), ... ,(PICKUP_X_x, PICKUP_X_y)]             (list)
-     [(DONT_MOVE_1_x, DONT_MOVE_1_y), ... ,(DONT_MOVE_X_x, DONT_MOVE_X_y)] (list)
+     [(OBSTACLE1_x, OBSTACLE1_y), ... ,(OBSTACLEX_x, OBSTACLEY_y)] (list)
+     [(RECHARGE1_x, RECHARGE1_y), ... ,(RECHARGEX_x, RECHARGEY_y)] (list)
+     [(TREADMILL1_x, TREADMILL1_y), ... ,(TREADMILLX_x, TREADMILLY_y)] (list)
+     [(WORKERS1_x, WORKERS1_y), ... ,(WORKERSX_x, WORKERSY_y)] (list)
+     [(DELIVERY1_x, DELIVERY1_y), ... ,(DELIVERYX_x, DELIVERYY_y)] (list)
+     [(PICKUP1_x, PICKUP1_y), ... ,(PICKUPX_x, PICKUPY_y)] (list)
+     [(DONTMOVE_x, DELIVERY1_y), ... ,(DELIVERYX_x, DELIVERYY_y)] (list)
     
         Where:
 
-            GRID_WIDTH  (int)
+            GRID_WIDTH (int)
             GRID_HEIGHT (int)
-            CELL_WIDTH  (int)
+            CELL_WIDTH (int)
             CELL_HEIGHT (int)
-            OBSTACLE_x  (int)
-            OBSTACLE_y  (int)
-            RECHARGE_x  (int)
-            RECHARGE_y  (int)
-            TREADMILL_x (int)
-            TREADMILL_y (int)
-            WORKERS_x   (int)
-            WORKERS_y   (int)
-            DELIVERY_x  (int)
-            DELIVERY_y  (int)
-            PICKUP_x    (int)
-            PICKUP_y    (int)
-            DONT_MOVE_x (int)
-            DONT_MOVE_y (int)
+            OBSTACLEX_x (int)
+            OBSTACLEY_x (int)
+            RECHARGEX_x (int)
+            RECHARGEY_x (int)
+            TREADMILLX_x (int)
+            TREADMILLY_x (int)
+            WORKERSX_x (int)
+            WORKERSY_x (int)
+            DELIVERYX_x (int)
+            DELIVERYY_x (int)
+            PICKUPX_x (int)
+            PICKUPY_x (int)
 
     Args:
 
-        (GRID_WIDTH, GRID_SIZE):          An tuple with the desired GRID size
-        (CELL_WIDTH, CELL_HEIGHT):        An tuple with the desired CELL size
-        (OBSTACLE_X_x, OBSTACLE_X_y):     An tuple with the desired OBSTACLES positions
-        (RECHARGE_X_x, RECHARGE_X_y):     An tuple with the desired RECHARGE positions
-        (TREADMILL_X_x, TREADMILL_X_y):   An tuple with the desired TREADMILL position
-        (WORKERS_X_x, WORKERS_X_y):       An tuple with the desired WORKERS positions
-        (DELIVERY_X_x, DELIVERY_X_y):     An tuple with the desired DELIVERY positions
-        (PICKUP_X_x, WORKERS_X_y):        An tuple with the desired PICKUP positions
-        (DONT_MOVE_X_x, DONT_MOVE_X_y):   An tuple with the desired DON'T MOVE positions
+        (GRID_WIDTH, GRID_SIZE): An tuple with the desired grid size
+        (CELL_WIDTH, CELL_HEIGHT): An tuple with the desired cell size
+        (OBSTACLEX_x, OBSTACLEY_y): An tuple with the desired obstacles positions
+        (RECHARGEX_x, RECHARGEX_y): An tuple with the desired recharge stations positions
+        (TREADMILLX_x, TREADMILLY_y): An tuple with the desired treadmill position
+        (WORKERSX_x, WORKERSY_y): An tuple with the desired workers positions
+        (DELIVERYX_x, DELIVERYY_y): An tuple with the desired delivery points positions
 
     Vars:
 
-        GRID_WIDTH    = The desired GRID WIDTH
-        GRID_HEIGHT   = The desired GRID HEIGHT
-        CELL_WIDTH    = The desired CELL WIDTH
-        CELL_HEIGHT   = The desired CELL HEIGHT
-        OBSTACLE_X_x  = The OBSTACLE location "X" at Grid pos. X  (column)
-        OBSTACLE_X_y  = The  OBSTACLE location  "X" at Grid in pos. Y (row)
-        RECHARGE_X_x  = The RECHARGE location "X" at Grid pos. X  (column)
-        RECHARGE_X_y  = The RECHARGE location  "X" at Grid in pos. Y (row)
-        TREADMILL_X_x = The TREADMILL location "X" at Grid pos. X  (column)
-        TREADMILL_X_y = The TREADMILL location  "X" at Grid in pos. Y (row)
-        WORKERS_X_x   = The WORKERS location "X" at Grid pos. X  (column)
-        WORKERS_X_y   = The WORKERS location  "X" at Grid in pos. Y (row)
-        DELIVERY_X_x  = The DELIVERY location "X" at Grid pos. X  (column)
-        DELIVERY_X_y  = The DELIVERY  location  "X" at Grid in pos. Y (row)
-        PICKUP_X_x    = The PICKUP location "X" at Grid pos. X (column)
-        PICKUP_X_y    = The PICKUP location  "X" at Grid in pos. Y (row)
+        GRID_WIDTH = The desired grid WIDTH
+        GRID_HEIGHT = The desired grid HEIGHT
+        CELL_WIDTH = The desired grid WIDTH
+        CELL_HEIGHT = The desired grid HEIGHT
+        OBSTACLEX_x = The Obstacle location on the Grid in pos. X
+        OBSTACLEY_y = The Obstacle location on the Grid in pos. Y
+        RECHARGEX_x = The Recharge location on the Grid in pos. X
+        RECHARGEY_y = The Recharge location on the Grid in pos. Y
+        TREADMILLX_x = The Treadmill location on the Grid in pos. X
+        TREADMILLY_y = The Treadmill location on the Grid in pos. Y
+        WORKERSX_x = The Workers location on the Grid in pos. X
+        WORKERSY_y = The Workers location on the Grid in pos. Y
+        DELIVERYX_x = The Delivery location on the Grid in pos. X
+        DELIVERYY_y = The Delivery location on the Grid in pos. Y
 
     Returns:
 
@@ -713,23 +799,29 @@ class WeightedGrid(WorldGrid):
         user.
     '''
 
-    def __init__(self, world_grid_size = (world.GRID_WIDTH, world.GRID_HEIGHT),
-                 world_cell_size = (world.CELL_WIDTH, world.CELL_HEIGHT),
-                 world_obstacles_positions = world.OBSTACLES,
-                 world_recharge_positions = world.RECHARGE_ZONE,
-                 world_treadmill_positions = world.TREADMILL_ZONE,
-                 world_workers_positions = world.WORKERS_POS,
-                 world_delivery_positions = world.DELIVERY_ZONE,
-                 world_pickup_positions = world.PICKUP_ZONE,
-                 world_dont_move = world.DONT_MOVE):
+    def __init__(self, world_grid_size = (GRID_WIDTH, GRID_HEIGHT),
+                 world_cell_size = (CELL_WIDTH, CELL_HEIGHT),
+                 world_obstacles_positions = OBSTACLES,
+                 world_recharge_queue_positions = RECHARGE_ZONE_QUEUE,
+                 world_recharge_positions = RECHARGE_ZONE,
+                 world_treadmill_positions = TREADMILL_ZONE,
+                 world_workers_positions = WORKERS_POS,
+                 world_delivery_positions = DELIVERY_ZONE,
+                 world_pickup_queue_positions = PICKUP_ZONE_QUEUE,
+                 world_pickup_positions = PICKUP_ZONE,
+                 world_dont_move = DONT_MOVE):
  
         super().__init__()
         # CREATE A DIC TO SAVE THE NODE WEIGHTS
         self.weights = {}
         # CREATE WEIGHTS FOR THE RECHARGE ZONE
+        for Recharge_Queue in self.world_recharge_position:
+            self.weights[Recharge_Queue] = 50
         for Recharge in self.world_recharge_position:
             self.weights[Recharge] = 40
         # CREATE WEIGHTS FOR THE PICKUP ZONE
+        for Pickup_Queue in self.world_pickup_queue_positions:
+            self.weights[Pickup_Queue] = 50
         for Pickup in self.world_pickup_positions:
             self.weights[Pickup] = 40
 
@@ -865,8 +957,8 @@ class SingleRobot(pygame.sprite.Sprite):
         # SET THE ROTATION
         self.rotation = 0
         # SET THE SPEED
-        self.x_speed = world.MAX_VELOCITY
-        self.y_speed = world.MAX_VELOCITY
+        self.x_speed = MAX_VELOCITY
+        self.y_speed = MAX_VELOCITY
         # SET THE PATH HEAP WHERE THE ROBOT WILL MOVE
         self.robot_path_pop = deque([])
         # SET the PATH for the Robot as Global
@@ -913,19 +1005,19 @@ class SingleRobot(pygame.sprite.Sprite):
             #* Move to Left
             if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
 
-                self.rect.x += world.MAX_VELOCITY
+                self.rect.x += MAX_VELOCITY
             #* Move to Right
             elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
 
-                self.rect.x -= world.MAX_VELOCITY
+                self.rect.x -= MAX_VELOCITY
             #* Move to Top
             elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
 
-                self.rect.y -= world.MAX_VELOCITY
+                self.rect.y -= MAX_VELOCITY
             #* Move to Bottom
             else:
 
-                self.rect.y += world.MAX_VELOCITY
+                self.rect.y += MAX_VELOCITY
         #* Finish the Animation
         except:
             print('------------------')
@@ -944,15 +1036,16 @@ class MultiRobot(pygame.sprite.Sprite):
 
     Args:
 
-        start (vector2d): The Robot start node position (X , Y)
-                          in the Vector2d PyGame format
-        goal (vector2d):  The Robot goal position (X, Y) in the
-                          Vector2d PyGame format
-        path (vector2d):  The Shortest Path the robot will run
+        free_space (list): A list with the Free Space Nodes Available in Vector2d PyGame format
+                           ex: [Vector2(X,Y), ..., Vector2(Xn, Yn)]
+        goals (tuple):     A list with the Robots goal node position in the Vector2d PyGame format
+                           ex: [(X , Y), ..., (Xn, Yn)]
+        paths (tuple):     The Shortest Path lists that the robot will run
+                           ex: [Path_1, ..., Path_n]
 
     Returns:
 
-        The Robot icon translated to the PyGame Library and Draw
+        The Robots icons translated to the PyGame Library and Draw
         at the specified START location
     '''
     # The Sprite for the Robots
@@ -984,8 +1077,8 @@ class MultiRobot(pygame.sprite.Sprite):
         # SET THE ROTATION
         self.rotation = 0
         # SET THE SPEED
-        self.x_speed = world.MAX_VELOCITY
-        self.y_speed = world.MAX_VELOCITY
+        self.x_speed = MAX_VELOCITY
+        self.y_speed = MAX_VELOCITY
         # SET the PATH and the PATH VECTOR as Global
         global robotPath, pathVector
         robotPath = deque([])
@@ -1012,7 +1105,7 @@ class MultiRobot(pygame.sprite.Sprite):
         print(f'The robot path was the nodes: {list(robotPath)}')
         print(f'The robot movements desired is: {list(pathVector)}\n')
 
-    def update(self, robots, treadmill, worldGrid):
+    def update(self, robots, workers, treadmill, world):
         '''
         Update the Robot Location at every Frame when SPACE is Pressed
 
@@ -1028,39 +1121,108 @@ class MultiRobot(pygame.sprite.Sprite):
         '''
         # INICIO DA INSTANCIA DO RELÓGIO
         clock = pygame.time.Clock()
-        dt = clock.tick(default.FPS)
+
+        dt = clock.tick(FPS)
+
+
         path_poped = allPathsVectors.popleft()
         print(f'Path Poped: {path_poped}')
         
         def run():
-            pygame.event.clear()
             for vector in path_poped:
-                pygame.event.pump()
                 print(f'Vectors: {vector}')
+                #* Draw the Spriters in the Grid
+                #screen.fill(COLOR_WHITE)
+                #* Draw the grid
+                world.draw_grid()
+                #* Draw the obstacles
+                world.draw_obstacles()
+                #* Draw the Treadmill Zone
+                world.draw_treadmill_zone()
+                #* Draw the Workers Zone
+                world.draw_workers_zone()
+                #* Draw the Delivery Zone
+                world.draw_delivery_zone()
+                #* Draw the Recharge Queue Zone
+                world.draw_queue_recharge_zone()
+                #* Draw the Recharge Zone
+                world.draw_recharge_zone()
+                #* Draw the Pickup Queue Zone
+                world.draw_queue_pickup_zone()
+                #* Draw the Pickup Zone
+                world.draw_pickup_zone()
+                #* Updates the Treadmill and Workers
+                workers.update()
+                treadmill.update()
+                workers.draw(screen)
+                #* Draw the Robots, Treadmill, and Workers
+                treadmill.draw(screen)
                 robots.draw(screen)
+                pygame.display.flip()
                 #* Move to Left
                 if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
 
-                    self.rect.x += world.MAX_VELOCITY
+                    self.rect.x += MAX_VELOCITY
 
                 #* Move to Right
                 elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
 
-                    self.rect.x -= world.MAX_VELOCITY
+                    self.rect.x -= MAX_VELOCITY
 
                 #* Move to Top
                 elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
 
-                    self.rect.y -= world.MAX_VELOCITY
+                    self.rect.y -= MAX_VELOCITY
                 #* Move to Bottom
                 else:
 
-                    self.rect.y += world.MAX_VELOCITY
-                time.sleep(0.5)
-                #pygame.event.clear()
+                    self.rect.y += MAX_VELOCITY
+                time.sleep(1)
 
         thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
         thread.submit(run)
+        #t1 = threading.Thread(target = run)
+        #t1.start()
+
+
+class Workers(pygame.sprite.Sprite):
+    '''
+    Adjust the Workers Icon and draw in the Grid as a Sprite
+
+    Args:
+        workers (Tuple): The workers start position (X , Y) 
+
+    Returns:
+
+        The Worker icon translated to the PyGame Library and Draw
+        at the specified START location
+    '''
+    # The Sprite for the Robots
+    def __init__(self, workers_pos):
+
+        pygame.sprite.Sprite.__init__(self)
+
+        for workers in workers_pos:
+            workers_vector = vec(workers)
+            # SET THE START NODE
+            self.start = workers_vector
+            # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
+            self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
+            # LOAD THE ROBOT IMG TO THE PYGAME MODULE
+            self.image = pygame.image.load(os.path.join(self.icon_dir, 'worker.png')).convert_alpha()
+            # SCALE THE IMAGE
+            self.image = pygame.transform.scale(self.image, (50,50))
+            # DRAWS A RECTANGLE FOR THE FIGURE
+            self.rect = self.image.get_rect()
+            # FILL THE IMAGE WITH THE BLEND MODULE
+            self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
+                                    (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
+    
+    def update(self):
+
+        # SET THE SPEED
+        self.x_speed = 0
+        self.y_speed = 0
 
 class TreadmillItems(pygame.sprite.Sprite):
     '''
