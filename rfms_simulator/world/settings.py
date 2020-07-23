@@ -81,6 +81,12 @@ class LaserTradGridHorizontal(object):
         #* SET the DEFAUL Cells that the Robot Can't Move
         #? In this case is the Column where the worker is located
         self.DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10,4), (10, 2), (10,0)]
+        #* SWARM RADIUS
+        self.SWARM_AREA = 200
+        #* MINIMUN DISTANCE
+        self.FLEE_RADIUS = 200
+        #* MAX_FLEE_FORCE
+        self.MAX_FLEE_FORCE = 100
 
 
 class LaserTradGridVertical(object):
@@ -324,6 +330,7 @@ class Colors(object):
         self.COLOR_MAGENTA = (255, 0, 255)
         self.COLOR_YELLOW = (255, 255, 0)
         self.COLOR_YELLOW_ROYAL = (250, 218, 94)
+        self.COLOR_ORANGE = (230, 149, 0)
         #* The Recharge Zone Color
         self.COLOR_SOFT_YELLOW = (239, 217, 127)
         self.COLOR_DARKGRAY = (40, 40, 40)
