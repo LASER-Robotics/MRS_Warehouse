@@ -49,13 +49,13 @@ vec = pygame.math.Vector2
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
 #* Horizontal Layout
-create = settings.LaserTradGridHorizontal()
+#create = settings.LaserTradGridHorizontal()
 #* Vertical Layout
 #create = settings.LaserTradGridVertical()
 #* Flying-V Layout
 #create = settings.LaserFlyingVGrid()
 #* Fishbone Layout
-#create = settings.LaserFishboneGrid()
+create = settings.LaserFishboneGrid()
 #* 100x100 Traditional Layout
 #create = settings.BigWarehouseGrid()
 # LOAD THE COLORS FROM THE SETTINGS
@@ -244,9 +244,11 @@ class WorldGrid:
         self.travel_right = vec(-1, 0)
         self.travel_bottom = vec(0, 1)
         self.travel_top = vec(0, -1)
+        self.travel_none = vec(0, 0)
         # * In this way the allowed connections are
         self.allowed_connections = [self.travel_left, self.travel_right,
-                                    self.travel_bottom, self.travel_top]
+                                    self.travel_bottom, self.travel_top,
+                                    self.travel_none]
         # SETUP THE SCREEN
         global screen
         screen = pygame.display.set_mode(screenSize)
@@ -776,7 +778,7 @@ class PriorityQueue:
 
     '''
     def __init__(self):
-        #* Initwith a empty list of nodes
+        #* Init with a empty list of nodes
         self.nodes = []
     
     def put(self, node, cost):
@@ -913,6 +915,8 @@ class SingleRobot(pygame.sprite.Sprite):
         try:
             #* Pick the Path Vector 
             vector = pathVector.popleft()
+            atual_pos = robotPath.popleft()
+            print(f'The Current Robot Position is: {atual_pos}\n')
             #* Move to Left
             if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
 
@@ -942,18 +946,18 @@ global allPathsVectors, allRobotsPaths
 allPathsVectors = deque([])
 allRobotsPaths = deque([])
 
-
 class MultiRobot(pygame.sprite.Sprite):
     '''
     Adjust the Robots Icons and draw in the Grid as a Sprite
 
     Args:
 
-        start (vector2d): The Robot start node position (X , Y)
-                          in the Vector2d PyGame format
-        goal (vector2d):  The Robot goal position (X, Y) in the
-                          Vector2d PyGame format
-        path (vector2d):  The Shortest Path the robot will run
+        start (vector2d):  The Robot start node position (X , Y)
+                           in the Vector2d PyGame format
+        goal (vector2d):   The Robot goal position (X, Y) in the
+                           Vector2d PyGame format
+        path (vector2d):   The Shortest Path the robot will run
+        robot_count (int): The atual robot number
 
     Returns:
 
@@ -971,7 +975,6 @@ class MultiRobot(pygame.sprite.Sprite):
         self.start_pos = (int(start.x), int(start.y))
         self.goal_pos = goal
         self.path = path
-        self.path = self.path[0]
         print(f'Robot Start Position: {self.start}')
         print(f'Robot Goal Position: {self.goal_pos}')
         print(f'Robot Path: {self.path}')
@@ -988,9 +991,14 @@ class MultiRobot(pygame.sprite.Sprite):
                             (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
         # SET THE ROTATION
         self.rotation = 0
-        # SET THE SPEED
-        self.x_speed = create.MAX_VELOCITY
-        self.y_speed = create.MAX_VELOCITY
+        # SET THE ACCELERATION AND VELOCITY
+        self.vel = vec(create.MAX_VELOCITY).rotate(0)
+        self.acc = vec(0,0)
+        # BOOLEAN TURN CHECK
+        self.turn_left = False
+        self.turn_right = False
+        self.turn_bottom = False
+        self.turn_top = True
         # SET the PATH and the PATH VECTOR as Global
         global robotPath, pathVector
         robotPath = deque([])
@@ -1000,6 +1008,7 @@ class MultiRobot(pygame.sprite.Sprite):
         self.move_bottom = vec(0, 1)
         self.move_right = vec(-1, 0)
         self.move_top = vec(0, -1)
+        #self.wait = vec(0, 0)
         #* Set the Current position on the Node
         self.current_pos = self.path[(self.start_pos)] + self.start
         robotPath.extend([self.current_pos])
@@ -1012,10 +1021,11 @@ class MultiRobot(pygame.sprite.Sprite):
                                                              int(self.current_pos.y))]
             robotPath.extend([self.current_pos])
         # PUT THE PATH AND VECTORS AS GLOBAL
-        allRobotsPaths.extend([list(robotPath)])
         allPathsVectors.extend([list(pathVector)])
+        allRobotsPaths.extend([list(robotPath)])
         print(f'The robot path was the nodes: {list(robotPath)}')
         print(f'The robot movements desired is: {list(pathVector)}\n')
+
 
     def update(self, robots, treadmill, worldGrid):
         '''
@@ -1034,37 +1044,284 @@ class MultiRobot(pygame.sprite.Sprite):
         # INICIO DA INSTANCIA DO RELÓGIO
         clock = pygame.time.Clock()
         dt = clock.tick(default.FPS)
+        #* The Robot Paths
+        robot_path_poped = allRobotsPaths.popleft()
+        print(f'Robot Path: {robot_path_poped}\n')
+        #* The Vector Movement Desired
         path_poped = allPathsVectors.popleft()
-        print(f'Path Poped: {path_poped}')
-        
+        print(f'\nRobot Path Movement: {path_poped}')
+
         def run():
             pygame.event.clear()
+            path_iterator = iter(robot_path_poped)
             for vector in path_poped:
                 pygame.event.pump()
-                print(f'Vectors: {vector}')
+                current_pos = vec(next(path_iterator, 'Goal Reached'))
+                #print(f'\nThe Current Robot Movements is: {vector}')
+                #print(f'The Current Robot Position is: {current_pos}\n')
                 robots.draw(screen)
+                vec_pos = current_pos
+                #* Draws the Area were the Robots look for Boids
+                #pygame.draw.rect(screen, paint.COLOR_GREEN, [(vec_pos.x-2)*100,
+                                 #(vec_pos.y-2)*100, 500, 500], 0)
                 #* Move to Left
                 if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
-
-                    self.rect.x += create.MAX_VELOCITY
-
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_left:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, -90)
+                        self.turn_left = True
+                        self.turn_right = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                    else:
+                        self.rect.x += create.MAX_VELOCITY
                 #* Move to Right
                 elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
-
-                    self.rect.x -= create.MAX_VELOCITY
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_right:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                    else:
+                        self.rect.x -= create.MAX_VELOCITY
 
                 #* Move to Top
                 elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_top:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = True
+                        #* Now move
+                        self.rect.y -= create.MAX_VELOCITY
+                    else:
+                        self.rect.y -= create.MAX_VELOCITY
 
-                    self.rect.y -= create.MAX_VELOCITY
                 #* Move to Bottom
                 else:
-
-                    self.rect.y += create.MAX_VELOCITY
+                    if not self.turn_bottom:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 180)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = True
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.y += create.MAX_VELOCITY
+                    else:
+                        self.rect.y += create.MAX_VELOCITY
+                
                 time.sleep(0.5)
+            
         # RUN THREADED
         thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
         thread.submit(run)
+
+
+global boidsPathsVectors, boidsPaths
+boidsPathsVectors = deque([])
+boidsPaths = deque([])
+class Boids(pygame.sprite.Sprite):
+
+    def __init__(self, start, goal, path):
+        pygame.sprite.Sprite.__init__(self)
+        print("\n__________________ STARTING A NEW ROBOT __________________\n")
+        # THE MULTI ROBOT VARIABLES
+        self.start = start
+        self.start_pos = (int(start.x), int(start.y))
+        self.goal_pos = goal
+        self.path = path
+        print(f'Robot Start Position: {self.start}')
+        print(f'Robot Goal Position: {self.goal_pos}')
+        print(f'Robot Path: {self.path}')
+        # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
+        self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
+        # LOAD THE ROBOT IMG TO THE PYGAME MODULE
+        self.image = pygame.image.load(os.path.join(self.icon_dir, 'robot.png')).convert_alpha()
+        # SCALE THE IMAGE
+        self.image = pygame.transform.scale(self.image, (50,50))
+        # DRAWS A RECTANGLE FOR THE FIGURE
+        self.rect = self.image.get_rect()
+        # FILL THE IMAGE WITH THE BLEND MODULE
+        self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
+                            (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
+        # SET THE ROTATION
+        self.rotation = 0
+        # SET THE ACCELERATION AND VELOCITY
+        self.vel = vec(create.MAX_VELOCITY).rotate(0)
+        self.acc = vec(0,0)
+        # SET the PATH and the PATH VECTOR as Global
+        global robotPath, pathVector
+        robotPath = deque([])
+        pathVector = deque([])
+        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
+        self.move_left = vec(1, 0)
+        self.move_bottom = vec(0, 1)
+        self.move_right = vec(-1, 0)
+        self.move_top = vec(0, -1)
+        # BOOLEAN TURN CHECK
+        self.turn_left = False
+        self.turn_right = False
+        self.turn_bottom = False
+        self.turn_top = True
+        # SET the PATH and the PATH VECTOR as Global
+        global boidPath, boidVector
+        boidPath = deque([])
+        boidVector = deque([])
+        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
+        self.move_left = vec(1, 0)
+        self.move_bottom = vec(0, 1)
+        self.move_right = vec(-1, 0)
+        self.move_top = vec(0, -1)
+        #self.wait = vec(0, 0)
+        #* Set the Current position on the Node
+        self.current_pos = self.path[(self.start_pos)] + self.start
+        robotPath.extend([self.current_pos])
+        path_vector_start = self.current_pos - self.start
+        pathVector.extend([path_vector_start])
+        while self.current_pos != self.goal_pos:
+            self.path_vector = self.path[(self.current_pos.x, self.current_pos.y)]
+            pathVector.extend([self.path_vector])
+            self.current_pos = self.current_pos + self.path[(int(self.current_pos.x),
+                                                             int(self.current_pos.y))]
+            robotPath.extend([self.current_pos])
+        # PUT THE PATH AND VECTORS AS GLOBAL
+        boidsPathsVectors.extend([list(pathVector)])
+        boidsPaths.extend([list(robotPath)])
+        print(f'The robot path was the nodes: {list(robotPath)}')
+        print(f'The robot movements desired is: {list(pathVector)}\n')
+
+
+    def update(self, robots, treadmill, worldGrid):
+        '''
+        Update the Robot Location at every Frame when SPACE is Pressed
+
+        Args:
+
+            None
+        
+        Returns:
+
+            The Robot icon translated to the PyGame Library and Draw
+            at the Screen moving to START to GOAL along the shortest
+            path found by the Search Algorithm.
+        '''
+        # INICIO DA INSTANCIA DO RELÓGIO
+        clock = pygame.time.Clock()
+        dt = clock.tick(default.FPS)
+        #* The Robot Paths
+        boid_path_poped = boidsPaths.popleft()
+        print(f'Robot Path: {boid_path_poped}\n')
+        #* The Vector Movement Desired
+        path_poped = boidsPathsVectors.popleft()
+        print(f'\nRobot Path Movement: {path_poped}')
+
+        def run():
+            pygame.event.clear()
+            path_iterator = iter(boid_path_poped)
+            for vector in path_poped:
+                pygame.event.pump()
+                current_pos = vec(next(path_iterator, 'Goal Reached'))
+                #print(f'\nThe Current Robot Movements is: {vector}')
+                #print(f'The Current Robot Position is: {current_pos}\n')
+                robots.draw(screen)
+                vec_pos = current_pos
+                #* Draws the Area were the Robots look for Boids
+                pygame.draw.rect(screen, paint.COLOR_ORANGE, [(vec_pos.x-2)*100,
+                                 (vec_pos.y-2)*100, 500, 500], 0)
+                #* Move to Left
+                if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_left:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, -90)
+                        self.turn_left = True
+                        self.turn_right = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                    else:
+                        self.rect.x += create.MAX_VELOCITY
+                #* Move to Right
+                elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_right:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                    else:
+                        self.rect.x -= create.MAX_VELOCITY
+
+                #* Move to Top
+                elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_top:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = True
+                        #* Now move
+                        self.rect.y -= create.MAX_VELOCITY
+                    else:
+                        self.rect.y -= create.MAX_VELOCITY
+
+                #* Move to Bottom
+                else:
+                    if not self.turn_bottom:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 180)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = True
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.y += create.MAX_VELOCITY
+                    else:
+                        self.rect.y += create.MAX_VELOCITY
+                
+                time.sleep(0.5)
+            
+        # RUN THREADED
+        thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        thread.submit(run)
+
+
+    def separation(self, target):
+
+        steer = vec(0, 0)
+        dist = self.pos - target
+        desired = vec(0, 0)
+
+        if dist.x != 0 and dist.y != 0:
+            if dist.lenght() <  create.FLEE_RADIUS:
+                desired = dist.normalize() * create.MAX_VELOCITY
+            else:
+                desired = self.vel.normalize() * create.MAX_VELOCITY
+        steer = desired = self.vel.normalize() * create.MAX_VELOCITY
+        if steer.lenght() > create.MAX_FLEE_FORCE:
+            steer.scale_to_length(create.MAX_FLEE_FORCE)
+        
+        return steer
+
 
 class TreadmillItems(pygame.sprite.Sprite):
     '''

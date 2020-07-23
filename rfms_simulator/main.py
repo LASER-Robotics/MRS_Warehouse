@@ -38,6 +38,9 @@ import timeit
 import schedule
 import concurrent.futures
 import multiprocessing
+import math
+import memory_profiler
+import pandas as pd
 #? Using the collections module since is the most efficient
 #? to implement and manipulate a queue list
 from collections import deque
@@ -48,8 +51,6 @@ from time import process_time
 import memory_profiler
 #* Import the createWorld Module
 from world import createWorld, settings
-
-
 # LOAD THE WORLD VARIABLES
 #* Horizontal Layout
 world = createWorld.create
@@ -57,6 +58,12 @@ world = createWorld.create
 default = settings.PygameDefaults()
 # LOAD THE COLORS FROM THE SETTINGS
 paint = settings.Colors()
+# CHECK NaN VALUES
+nan_value = float('nan')
+# THE CA* HASH TABLE (DICT)
+castarPaths = []
+# THE SWAM HASH TABLE
+swarmAreas = {}
 #* Load the PyGame Vector2 lib
 vec = pygame.math.Vector2
 
@@ -135,8 +142,6 @@ class PathPlanning:
             # THE CURRENT NODE WE WANT TO LOOK IS THE NEXT NODE
             #* Pop's the next on the queue list
             self.current = self.frontier.popleft()
-            print(f'Current: {self.current}')
-            print(graph.find_neighbors(vec(self.current)))
             # THE NEIGHBOORS OF THE CURRENT TILE
             for next in  graph.find_neighbors(self.current):
                 # IF THE NEXT NODE IS NOT VISITED
@@ -151,6 +156,7 @@ class PathPlanning:
         print(f'\nThe Free Node Cells Available are:\n{self.visited}')
         print(f'\nFree Node Cells availabe: {visitedNodes} Grid Cells')
         return self.visited
+
 
     def breath_first_search(self, graph, start = world.START,
                             goal = world.GOAL):
@@ -236,6 +242,7 @@ class PathPlanning:
         print('\nThe Breadth First Search Path "Process Time" was ',
               stop_process_time - start_process_time, 'sec\n')
         return self.path
+
 
     def dijkstras_search(self, graph, start = world.START,
                          goal = world.GOAL):
@@ -323,6 +330,7 @@ class PathPlanning:
         
         return self.path
 
+
     def astar_search(self, graph, start = world.START,
                      goal = world.GOAL):
         """
@@ -409,12 +417,13 @@ class PathPlanning:
         
         return self.path
 
-    def space_astar_search(self, graph, start=world.START,
-                           goal = world.GOAL,
-                           time = world.TIME_LIMIT):
+
+    def cooperative_astar_search(self, graph, start=world.START,
+                                 goal = world.GOAL,
+                                 time = world.TIME_LIMIT):
         """
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
-        and returns the shortest path using Space Time A-Star (A*) Search for the
+        and returns the shortest path using Cooperative A-Star (A*) Search for the
         Weighted Nodes.
         Attributes:
             (graph) (Class)
@@ -432,11 +441,11 @@ class PathPlanning:
             limit_time (int) = The Maximum Time we Can Run The Search
         
         Returns:
-            The Shortest Path Using A-Star (A*) Search for the START
+            The Shortest Path Using Cooperative A-Star (CA*) Search for the START
             and GOAL nodes provided
         """
     
-        print("\n__________________ SPACE TIME A* (STA*) SEARCH STARTED __________________\n")    
+        print("\n__________________ COOPERATIVE A* (CA*) SEARCH STARTED __________________\n")    
         #* START THE TIMER
         start_time = timeit.default_timer()
         start_process_time = process_time()
@@ -488,20 +497,22 @@ class PathPlanning:
                     self.frontier.put(next, self.priority)
                     #* Put in the path vector
                     self.path[next] = vec(self.current) - vec(next)
+                    #print(self.path)
         #* Stop the Default Timer (Wall Timer)
         stop_time = timeit.default_timer()
         #* Stop the Process Timer (Wall Timer)
         stop_process_time = process_time()
         # PRINT ALL THE VISITED NODES
-        print(f"\nThe A* Search Path Available Nodes Movement are:\n{self.path}")
-        print(f"\nThe  A* Search Path have: {len(self.path)} Available Nodes")
-        print(f"\nThe  A* Search Path 'While Loop' Interactions was: {self.while_interactions}")
-        print(f"\nThe  A* Search Path 'For Loop' Interactions was: {self.for_interactions}")
-        print("\nThe  A* Search Path 'Wall time' was ", stop_time - start_time, 'sec')
-        print("\nThe  A* Search Path 'Process Time' was ",
-            stop_process_time - start_process_time, 'sec\n')
+        print(f"\nThe CA* Search Path Available Nodes Movement are:\n{self.path}")
+        print(f"\nThe  CA* Search Path have: {len(self.path)} Available Nodes")
+        print(f"\nThe  CA* Search Path 'While Loop' Interactions was: {self.while_interactions}")
+        print(f"\nThe  CA* Search Path 'For Loop' Interactions was: {self.for_interactions}")
+        print("\nThe  CA* Search Path 'Wall time' was ", stop_time - start_time, 'sec')
+        print("\nThe  CA* Search Path 'Process Time' was ",
+              stop_process_time - start_process_time, 'sec\n')
 
         return self.path
+
 
 def vec_to_int(vector):
     """
@@ -521,6 +532,7 @@ def vec_to_int(vector):
     """
     # RETURN THE VECTOR AS INTEGER
     return (int(vector.x), int(vector.y))
+
 
 def manhattan_distance(node_one, node_two):
     """
@@ -542,6 +554,240 @@ def manhattan_distance(node_one, node_two):
     manhattan_distance = (abs(node_one.x - node_two.x) + abs(node_one.y - node_two.y))*10
 
     return manhattan_distance
+
+
+def wait_in(node_value, previous_path):
+    temporary_path = previous_path[:]
+    try:
+        get_collision_index = temporary_path.index(node_value)
+        if get_collision_index == 0:
+            previous_index = get_collision_index
+        else:
+            previous_index = int(get_collision_index - 1)
+        previous_node = temporary_path[previous_index]
+        temporary_path[previous_index:previous_index] = [previous_node]
+    except:
+        pass
+    global new_path
+    new_path = []
+    for values in temporary_path:
+        new_path.append(vec(values))
+    return new_path
+
+def find_path_collisions(reservation_table, atual_path):
+
+    #if not castarPaths:
+
+    #    castarPaths.append(new_path)
+
+    #else:
+    castarPaths.append(atual_path)
+    #* DFS PANDAS
+    dfs = []
+    for l in castarPaths:
+        l_series = pd.Series(l)
+        l_df = pd.DataFrame(l_series)
+        dfs.append(l_df)
+    global df
+    df = pd.concat(dfs, ignore_index=True, axis=1)
+    #create second df of Boolean values if there are matches to the new_list
+    df2 = df[df.isin(atual_path)]
+    df_final = df2.dropna(how='all')#drop rows where no matches were found in any list
+    #print(df_final.stack())
+    #print(df_final.stack().index)
+    columns = list(df_final)
+    for i in columns:
+        for x in df_final[i]:
+            wait_in(x, atual_path)
+            #temporary_list = df_final[i].tolist()
+        #print(temporary_list)
+    return print('Collision Table\n', df_final)
+    # if not reservation_table:
+    #     # THE TIME STEPS THE ROBOT WILL RUN (START+PATH)
+    #     #time_run = list(range(0, len(new_path)+1))
+    #     castarPaths.append(new_path)
+    #     #print(f'\nThe robot steps in time is: {time_run}')
+    #     #print(f'The CA* Hash table is: {castarPaths}\n')
+
+    # else:
+    #     # THE TIME STEPS THE ROBOT WILL RUN (START+PATH)
+    #     #time_run = list(range(0, len(new_path)+1))
+    #     #print(f'\nThe robot steps in time is: {time_run}')
+    #     list_index = 0
+    #     for _ in range(len(castarPaths)):
+    #         node_collision = set(new_path).intersection(castarPaths[list_index])
+    #         time_collision_0 = [castarPaths[list_index].index(x) for x in node_collision]
+    #         time_collision_1 = [new_path.index(x) for x in node_collision]
+    #         print(f'Collisions will happen in: {time_collision_0}')
+    #         print(f'Collisions will happen in: {time_collision_1}')
+    #         print(f'Similar nodes {node_collision}')
+    #         list_index += 1
+    #     castarPaths.append(new_path)
+
+
+def discrete_time(start, robot_node_path, robot_count):
+        """
+        A function responsible to convert the robot 2D path into 3D,
+        adding the Time Step to every robot path node.
+
+            (start)           (vec2d)
+            (robot_node_path) (dict)
+            (robot_count)     (int)
+        
+        Args:
+            
+            (start)          : The Robot Random Start in vec2d format
+            (robot_node_path): The Path Dict generated by the A*
+            (robot_count)    : The Robot atual value
+        
+        Returns:
+            
+            The CA* Hash Table
+        """
+        #* Create a new Dic Key
+        robot_value = "".join(['Robot', str(robot_count)])
+        robot_path_list_vec = list(robot_node_path)
+        robot_path_list_vec.insert(0, start)
+        # Transform the Path Vec format to Tuple Format
+        robot_path_list = list(tuple(map(int, paths)) for paths in robot_path_list_vec)
+        find_path_collisions(castarPaths, robot_path_list)
+
+
+def create_neighboorhood(pos, swarm_key):
+    """
+    A function responsible to update the Swarm Hash Table.
+    
+    The Function will calculate the neighboors cells around the robot
+    and update the Swarm Hash table.
+
+        (pos)           (vec2d)
+        (swarm_key)     (str)
+    
+    Args:
+        
+        (start)          : The Robot Random Start Position in vec2d format
+        (swarm_key)      : The Swarm Neighboorhood
+    
+    Returns:
+        
+        The Swarms Neighboorhoods in the Grid
+    """
+    #* Create the Temporary Cells Swarm
+    #? This will prevent long term collisions
+    cell_1_x, cell_1_y = pos.x+1, pos.y
+    cell_2_x, cell_2_y = pos.x+2, pos.y
+    cell_3_x, cell_3_y = pos.x-1, pos.y
+    cell_4_x, cell_4_y = pos.x-2, pos.y
+    cell_5_x, cell_5_y = pos.x, pos.y+1
+    cell_6_x, cell_6_y = pos.x, pos.y+2
+    cell_7_x, cell_7_y = pos.x, pos.y-1
+    cell_8_x, cell_8_y = pos.x, pos.y-2
+    #? This will prevent short term collisions
+    cell_9_x, cell_9_y = pos.x-1, pos.y-1
+    cell_10_x, cell_10_y = pos.x-1, pos.y+1
+    cell_11_x, cell_11_y = pos.x+1, pos.y-1
+    cell_12_x, cell_12_y = pos.x+1, pos.y+1
+    #* Updates de Swarm Dictionary
+    first_swarm = [ vec(cell_1_x,cell_1_y), vec(cell_2_x,cell_2_y),
+                    vec(cell_3_x, cell_3_y), vec(cell_4_x, cell_4_y),
+                    vec(cell_5_x, cell_5_y), vec(cell_6_x, cell_6_y),
+                    vec(cell_7_x, cell_7_y), vec(cell_8_x, cell_8_y),
+                    vec(cell_9_x, cell_9_y), vec(cell_10_x, cell_10_y),
+                    vec(cell_11_x, cell_11_y), vec(cell_12_x, cell_12_y),
+                   ]
+    #* Update the Dictionary
+    swarmAreas.update({swarm_key:first_swarm})
+
+    return swarmAreas 
+    
+
+def create_swarms_area():
+    """
+    A function responsible to create new Swarms. If the start position
+    is inside a known neighboorhood the function will look the swam he
+    will need to enter and update the table. If not, will create a new
+    swarm.
+
+    Returns:
+        
+        The Swarm Hash Table
+    """
+    #selected_sprite = random.choice(robots.sprites())
+    #pygame.draw.rect(createWorld.screen, (255, 128, 0), selected_sprite.rect, 1)
+    swarm_count = 0
+    for pos in boidsStartsPos:
+        swarm_count += 1
+        swarm_value = ['Swarm', str(swarm_count)]
+        swarm_key = "".join(swarm_value)
+        #* If the swarm was not create before, create a new one
+        if not swarmAreas:
+            pygame.draw.rect(createWorld.screen, paint.COLOR_GREEN,
+                            [(pos.x-2)*100, (pos.y-2)*100, 500, 500], 1)
+            create_neighboorhood(pos, swarm_key)
+
+        else:
+            #* If the swarm was created before, check if the new swam area
+            #* is inside the previous swarm
+            if any(pos in values for values in swarmAreas.values()):
+                #* Check in with Swarm the Position was Found
+                keys = [key for key, value in swarmAreas.items() if pos in value]
+                print('\nFound a new Robot neighboors in inside a known Swarm, '+
+                        'including the {} into {}...\n'.format(swarm_key, keys))
+                swarm_key = str(keys[0])
+                create_neighboorhood(pos, swarm_key)
+                
+            else:
+                #* Create a new Swarm Neighboor
+                create_neighboorhood(pos, swarm_key)
+
+
+def run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots):
+    """
+    A function responsible to init the path search with swarms or not.
+
+        (robots_qtd)  (vec2d)
+        (goals)       (deque)
+        (time)        (tuple)
+        (newWorld)    (class)
+        (planning)    (class)
+        (all_robots)  (sprite)
+    
+    Args:
+        
+        (robots_qtd)     : The Number of Robots Desired in the World
+        (goals)          : The Desired Goals in Deque Format
+        (time)           : The maximum time limit to find a solution
+        (newWorld)       : The Class responsible to create the World
+        (planning)       : The Class responsible to run the Path Planning
+        (all_robots)     : The Robots in Sprite format
+
+    Returns:
+        
+        The Swarm Creation and Path Planning Execution
+    """
+    #* Init with zero Robots
+    robot_count = 0
+    #* Create The Robots and Paths based on the Number Required
+    for _ in range(robots_qtd):
+        robot_count += 1
+        #* Pop up the Goal
+        goal_poped = vec(goals.popleft())
+        #* Use the Find the Free Spaces Available
+        free_space = planning.find_free_space(newWorld, goal_poped)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        #* Start the Boid Swarm
+        boidsStartsPos.append(random_start)
+        create_swarms_area()
+        #* Run the Path Planning Algorithm
+        path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
+        #* Run the Paths and Add The Robots
+        robots =  createWorld.Boids(random_start, goal_poped, path)
+        #* Discretized the Path in Time Steps
+        #discrete_time(random_start, robot_path, robot_count)
+        all_robots.add(robots)
+    print(swarmAreas)
+
 
 def run_breadth_search(start=world.START, goal=world.GOAL):
     """
@@ -722,6 +968,7 @@ def run_breadth_search(start=world.START, goal=world.GOAL):
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
+
 def run_dijkstras_search(start=world.START, goal=world.GOAL):
     """
     The Dijkstras Search function of the Path Planning Library, responsible
@@ -899,6 +1146,7 @@ def run_dijkstras_search(start=world.START, goal=world.GOAL):
                            align="bottomright")
         #*Update the full display Surface to the screen
         pygame.display.flip()
+
 
 def run_astar_search(start=world.START, goal=world.GOAL):
     """
@@ -1078,37 +1326,31 @@ def run_astar_search(start=world.START, goal=world.GOAL):
         #*Update the full display Surface to the screen
         pygame.display.flip()
 
-def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
-                           robots_qtd=world.ROBOTS_QTD):
+
+def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
+                         robots_qtd=world.ROBOTS_QTD):
     """
-    The Space Time A-Star (STA*) Search function of the Path Planning Library, is
+    The Multi-Agent A-Star Search function of the Path Planning Library, is
     responsible to run the Weighted World and calculate the shortest path in a
-    PyGame Screen with Discretized Time for Multiple Robots
+    PyGame Screen with the A-Star Algorithm for Multiple Robots
         
     Attributes:
         (goal)       (tuple)
-        (time)       (tuple)
         (robots_qrd) (int)
     
     Args:
         (goal)      : Is the position in the Weighted Grid that
                       we want to achieve
-        (time)      : Is the discretized time limit that we will run the algorithm
         (robots_qtd): Is the number of robots with want to run the simulation
-    
-    Vars:
-        limit_time (int) = The Maximun Time to Run the Algorithm
+
     Returns:
-       The Shortest Path from the STA* Algorithm for multiple robots loaded in a
+       The Shortest Path from the A* Algorithm for multiple robots loaded in a
        PyGame Screen with World Inputed by the program or user
     """
     # CALL THE CLASS WORLD GRID
     #* ADJUST HERE THE WORLD YOU WANT
     #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
-    time_limit = time
-    time = (0, time_limit)
     goals = goal
-    print(f'\nThe Time Limit to Run the  Function is: {time_limit}\n')
     print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
     newWorld = createWorld.WeightedGrid()
     planning = PathPlanning()
@@ -1120,20 +1362,23 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
     #* Add the Robots Sprite Classes to the Groups
     all_robots = pygame.sprite.Group()
     # SET THE MULTIPLE PATHS
-    global pathsGlobal, robotsStartPos
+    global pathsGlobal, robotsStartPos, boidsStartsPos
     pathsGlobal = deque([])
     robotsStartPos = deque([])
+    boidsStartsPos = []
+    robot_count = 0
     for _ in range(robots_qtd):
+        robot_count += 1
+        #* Pop up the Goal
         goal_poped = vec(goals.popleft())
-        #* Using the Find Free Space to find the free space availabe in the
+        #* Use the Find the Free Spaces Available
         free_space = planning.find_free_space(newWorld, goal_poped)
+        #* Init the Robot in a Random Position
         random_start = random.choice(free_space)
-        robotsStartPos.extend([random_start])
-        pathsGlobal.append([planning.space_astar_search(newWorld, goal_poped, random_start, time)])
+        #* Run the Path Planning Algorithm
+        path = planning.astar_search(newWorld, goal_poped, random_start, time)
         #* Run the Paths and Add The Robots
-        start = robotsStartPos.popleft()
-        path = pathsGlobal.popleft()
-        robots =  createWorld.MultiRobot(start, goal_poped, path)
+        robots =  createWorld.MultiRobot(random_start, goal_poped, path)
         all_robots.add(robots)
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
@@ -1217,7 +1462,293 @@ def run_space_astar_search(goal=world.GOAL,time=world.TIME_LIMIT,
         all_robots.draw(createWorld.screen)
         all_treadmill_items.draw(createWorld.screen)
         #*Update the full display Surface to the screen
+        #create_swarms_area()
         pygame.display.flip()
+
+
+def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
+                          robots_qtd=world.ROBOTS_QTD):
+    """
+    The Cooperative A-Star (STA*) Search function of the Path Planning Library, is
+    responsible to run the Weighted World and calculate the shortest path in a
+    PyGame Screen with Discretized Time for Multiple Robots
+        
+    Attributes:
+        (goal)       (tuple)
+        (time)       (tuple)
+        (robots_qrd) (int)
+    
+    Args:
+        (goal)      : Is the position in the Weighted Grid that
+                      we want to achieve
+        (time)      : Is the discretized time limit that we will run the algorithm
+        (robots_qtd): Is the number of robots with want to run the simulation
+    
+    Vars:
+        limit_time (int) = The Maximun Time to Run the Algorithm
+    Returns:
+       The Shortest Path from the CA* Algorithm for multiple robots loaded in a
+       PyGame Screen with World Inputed by the program or user
+    """
+    # CALL THE CLASS WORLD GRID
+    #* ADJUST HERE THE WORLD YOU WANT
+    #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
+    time_limit = time
+    time = (0, time_limit)
+    goals = goal
+    print(f'\nThe Time Limit to Run the  Function is: {time_limit}\n')
+    print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
+    newWorld = createWorld.WeightedGrid()
+    planning = PathPlanning()
+    #* Start the Treadmill Class in a Group
+    all_treadmill_items = pygame.sprite.Group()
+    #* Init the treadmill Sprite
+    treadmill_items = createWorld.TreadmillItems()
+    all_treadmill_items.add(treadmill_items)
+    #* Add the Robots Sprite Classes to the Groups
+    all_robots = pygame.sprite.Group()
+    # SET THE MULTIPLE PATHS
+    global pathsGlobal, robotsStartPos, boidsStartsPos
+    pathsGlobal = deque([])
+    robotsStartPos = deque([])
+    boidsStartsPos = []
+    robot_count = 0
+    for _ in range(robots_qtd):
+        robot_count += 1
+        #* Pop up the Goal
+        goal_poped = vec(goals.popleft())
+        #* Use the Find the Free Spaces Available
+        free_space = planning.find_free_space(newWorld, goal_poped)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        #* Run the Path Planning Algorithm
+        path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
+        #* Run the Paths and Add The Robots
+        robots =  createWorld.MultiRobot(random_start, goal_poped, path)
+        #* Discretized the Path in Time Steps
+        discrete_time(random_start, path, robot_count)
+        all_robots.add(robots)
+    
+    #print(f'The CA* Hash table is:\n{df}')
+    # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
+    # * If still running do the Loop
+    running = True
+    while running:
+        # ADJUST THE CLOCK
+        createWorld.clock.tick(default.FPS)
+        # IF THE PYGAME RECEIVES AN EVENT
+        for event in pygame.event.get():
+            # IF THE EVENT IS TO QUIT THE APPLICATION
+            if event.type == pygame.QUIT:
+                #* Break the LOOP
+                running == False
+                #* Shutdown the PyGame
+                pygame.quit()
+                #* Closes the program and doesn't crete any dialogue
+                sys.exit(0)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    #* Break the LOOP
+                    running == False
+                    #* Shutdown the PyGame
+                    pygame.quit()
+                    #* Closes the program and doesn't crete any dialogue
+                    sys.exit(0)
+                if event.key == pygame.K_s:
+                    # Dump the wall list for saving (if needed)
+                    #* Use the command to show the actual obstacles values if modified
+                    print('The obstacle tuples drawn is:\n',
+                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                if event.key == pygame.K_SPACE:
+                    #* Run the robot movement simulation
+                    pygame.event.clear()
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+                        executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+            # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
+                mouse_pos = vec(pygame.mouse.get_pos())//newWorld.cell_size_width
+                # IF THE BUTTON WAS PRESSED
+                if event.button == 1:
+                    # IF THE MOUSE POSITION IS IN THE OBSTACLES TUPLE
+                    if mouse_pos in newWorld.obstaclesPosition:
+                        # REMOVE THE OBSTACLE
+                        newWorld.obstaclesPosition.remove(mouse_pos)
+                    else:
+                        # ADD A OBSTACLE
+                        newWorld.obstaclesPosition.append(mouse_pos)
+                # FOR EVERY NEW CLICK  OR OBSTACLE ADD, WE RECALCULATE THE PATH
+                #* RIGHT MOUSE TO CHANGE THE GOAL
+                if event.button == 3:
+                    goal_node = mouse_pos
+                #path = planning.astar_search(newWorld, goal_node, start_node) 
+        #pygame.event.pump()
+        # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        # FILLS THE SCREEN WITH A BLANK DISPLAY
+        createWorld.screen.fill(paint.COLOR_WHITE)
+        # UPDATE THE DISPLAY
+        #* Draw the grid
+        newWorld.draw_grid()
+        #* Draw the obstacles
+        newWorld.draw_obstacles()
+        #* Draw the Treadmill Zone
+        newWorld.draw_treadmill_zone()
+        #* Draw the Workers Zone
+        newWorld.draw_workers_zone()
+        #* Draw the Delivery Zone
+        newWorld.draw_delivery_zone()
+        #* Draw the Recharge Zone
+        newWorld.draw_recharge_zone()
+        #* Draw the Pickup Zone
+        newWorld.draw_pickup_zone()
+        #* Draw the Arrows
+        newWorld.draw_arrows()
+        #* Draw Don't Move Zone
+        newWorld.draw_dont_move()
+        #* Update the Spriters
+        all_treadmill_items.update()
+        #* Draw the Spriters in the Grid
+        all_robots.draw(createWorld.screen)
+        all_treadmill_items.draw(createWorld.screen)
+        #*Update the full display Surface to the screen
+        #create_swarms_area()
+        pygame.display.flip()
+
+
+def run_mapf_swarm(goal=world.GOAL,time=world.TIME_LIMIT,
+                   robots_qtd=world.ROBOTS_QTD):
+    """
+    The MAPF-S (Multi-Agent Pathfinding Swarm) framework, with is
+    responsible to run the Weighted World with Swarms and calculate
+    the shortest path in a PyGame Screen with Discretized Time for
+    Multiple Robots
+        
+    Attributes:
+        (goal)       (tuple)
+        (time)       (tuple)
+        (robots_qrd) (int)
+    
+    Args:
+        (goal)      : Is the position in the Weighted Grid that
+                      we want to achieve
+        (time)      : Is the discretized time limit that we will run the algorithm
+        (robots_qtd): Is the number of robots with want to run the simulation
+    
+    Vars:
+        limit_time (int) = The Maximun Time to Run the Algorithm
+    Returns:
+       The Shortest Path from the CA* Algorithm for multiple robots loaded in a
+       PyGame Screen with World Inputed by the program or user
+    """
+    # CALL THE CLASS WORLD GRID
+    #* ADJUST HERE THE WORLD YOU WANT
+    #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
+    time_limit = time
+    time = (0, time_limit)
+    goals = goal
+    print(f'\nThe Time Limit to Run the  Function is: {time_limit}\n')
+    print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
+    newWorld = createWorld.WeightedGrid()
+    planning = PathPlanning()
+    #* Start the Treadmill Class in a Group
+    all_treadmill_items = pygame.sprite.Group()
+    #* Init the treadmill Sprite
+    treadmill_items = createWorld.TreadmillItems()
+    all_treadmill_items.add(treadmill_items)
+    #* Add the Robots Sprite Classes to the Groups
+    all_robots = pygame.sprite.Group()
+    # SET THE MULTIPLE PATHS
+    global pathsGlobal, boidsStartsPos
+    pathsGlobal = deque([])
+    boidsStartsPos = []
+    run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots)
+    # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
+    # * If still running do the Loop
+    running = True
+    while running:
+        # ADJUST THE CLOCK
+        createWorld.clock.tick(default.FPS)
+        # IF THE PYGAME RECEIVES AN EVENT
+        for event in pygame.event.get():
+            # IF THE EVENT IS TO QUIT THE APPLICATION
+            if event.type == pygame.QUIT:
+                #* Break the LOOP
+                running == False
+                #* Shutdown the PyGame
+                pygame.quit()
+                #* Closes the program and doesn't crete any dialogue
+                sys.exit(0)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    #* Break the LOOP
+                    running == False
+                    #* Shutdown the PyGame
+                    pygame.quit()
+                    #* Closes the program and doesn't crete any dialogue
+                    sys.exit(0)
+                if event.key == pygame.K_s:
+                    # Dump the wall list for saving (if needed)
+                    #* Use the command to show the actual obstacles values if modified
+                    print('The obstacle tuples drawn is:\n',
+                            [(int(loc.x), int(loc.y)) for loc in createWorld.obstaclesPositionGlobal])
+                if event.key == pygame.K_SPACE:
+                    #* Run the robot movement simulation
+                    pygame.event.clear()
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+                        executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+            # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
+                mouse_pos = vec(pygame.mouse.get_pos())//newWorld.cell_size_width
+                # IF THE BUTTON WAS PRESSED
+                if event.button == 1:
+                    # IF THE MOUSE POSITION IS IN THE OBSTACLES TUPLE
+                    if mouse_pos in newWorld.obstaclesPosition:
+                        # REMOVE THE OBSTACLE
+                        newWorld.obstaclesPosition.remove(mouse_pos)
+                    else:
+                        # ADD A OBSTACLE
+                        newWorld.obstaclesPosition.append(mouse_pos)
+                # FOR EVERY NEW CLICK  OR OBSTACLE ADD, WE RECALCULATE THE PATH
+                #* RIGHT MOUSE TO CHANGE THE GOAL
+                if event.button == 3:
+                    goal_node = mouse_pos
+                #path = planning.astar_search(newWorld, goal_node, start_node) 
+        #pygame.event.pump()
+        # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
+        pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createWorld.clock.get_fps()))
+        # FILLS THE SCREEN WITH A BLANK DISPLAY
+        createWorld.screen.fill(paint.COLOR_WHITE)
+        # UPDATE THE DISPLAY
+        #* Draw the grid
+        newWorld.draw_grid()
+        #* Draw the obstacles
+        newWorld.draw_obstacles()
+        #* Draw the Treadmill Zone
+        newWorld.draw_treadmill_zone()
+        #* Draw the Workers Zone
+        newWorld.draw_workers_zone()
+        #* Draw the Delivery Zone
+        newWorld.draw_delivery_zone()
+        #* Draw the Recharge Zone
+        newWorld.draw_recharge_zone()
+        #* Draw the Pickup Zone
+        newWorld.draw_pickup_zone()
+        #* Draw the Arrows
+        newWorld.draw_arrows()
+        #* Draw Don't Move Zone
+        newWorld.draw_dont_move()
+        #* Update the Spriters
+        all_treadmill_items.update()
+        #* Draw the Spriters in the Grid
+        all_robots.draw(createWorld.screen)
+        all_treadmill_items.draw(createWorld.screen)
+        #*Update the full display Surface to the screen
+        #create_swarms_area()
+        pygame.display.flip()
+
+
 
 def main():
     """
@@ -1238,8 +1769,14 @@ def main():
     parser.add_argument('--astar', action='store_true',
                         help='Runs the A* Search')
 
-    parser.add_argument('--stastar', action='store_true',
-                        help='Runs the Space Time A* Search')
+    parser.add_argument('--mastar', action='store_true',
+                        help='Runs the Multi-Agent A* Search')
+
+    parser.add_argument('--castar', action='store_true',
+                        help='Runs the Cooperative A* Search')
+
+    parser.add_argument('--mapfs', action='store_true',
+                        help='Runs the MAPF-S Framework')
 
     parser.add_argument('--version', action='version',
                         version='Path Planning with Python = v1.0')
@@ -1252,8 +1789,12 @@ def main():
         run_dijkstras_search()
     if args.astar:
         run_astar_search()
-    if args.stastar:
-        run_space_astar_search()
+    if args.mastar:
+        run_multiagent_astar()
+    if args.castar:
+        run_cooperative_astar()
+    if args.mapfs:
+        run_mapf_swarm()
 
 if __name__ == '__main__':
     main()
