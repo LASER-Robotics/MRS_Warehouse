@@ -1,0 +1,140 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="Robo01">
+    <static>false</static>
+
+    <link name="carcaca">
+      <collision name="carcaca_collision">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/carcaca.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name="carcaca_visual">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/carcaca.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+
+  <!--  <link name="pistao">
+      <collision name="pistao_collision">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/pistao.dae</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>100</mu>
+              <mu2>50</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="pistao_visual">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/pistao.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link> -->
+
+    <link name="roda_direita">
+      <collision name="roda_direita_collision">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/roda_direita.dae</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>100</mu>
+              <mu2>50</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <inertial>
+        <mass>3.0</mass>
+        <inertia>
+          <ixx>0.019995</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.019995</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.03675</izz>
+        </inertia>
+      </inertial>
+      <visual name="roda_direita_visual">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/roda_direita.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+
+    <link name="roda_esquerda">
+      <collision name="roda_esquerda_collision">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/roda_esquerda.dae</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>100</mu>
+              <mu2>50</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="roda_esquerda_visual">
+        <geometry>
+          <mesh>
+            <uri>model://Robo01/meshes/roda_esquerda.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint type="revolute" name="roda_esquerda_dobra">
+      <pose>-0.15 -0.036 0.051495 0 1.5707 0</pose>
+      <child>roda_esquerda</child>
+      <parent>carcaca</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <joint type="revolute" name="roda_direita_dobra">
+      <pose>0.15 -0.036 0.051495 0 -1.5707 0</pose>
+      <child>roda_direita</child>
+      <parent>carcaca</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+    
+   <!--<joint type="revolute" name="pistao_dobra">
+      <pose>0.1 -0.105 0.035 0 0 0</pose>
+      <child>pistao</child>
+      <parent>carcaca</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>-->
+
+
+
+
+  </model>
+</sdf>
