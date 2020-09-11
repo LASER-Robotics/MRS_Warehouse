@@ -41,7 +41,7 @@ import concurrent.futures
 from world import settings
 from multiprocessing import Process
 from collections import deque
-from .settings import settingsLaserWorld
+from .settings import settingsBigWorld
 
 # GLOBAL VARIABLES
 # LOAD THE PyGAME VETOR2 LIB
@@ -50,19 +50,17 @@ vec = pygame.math.Vector2
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
 #* Horizontal Layout
-create = settingsLaserWorld.LaserTradGridHorizontal()
+create = settingsBigWorld.TradGridHorizontal()
 #* Vertical Layout
-#create = settingsLaserWorld.LaserTradGridVertical()
+#create = settingsBigWorld.TradGridVertical()
 #* Flying-V Layout
-#create = settingsLaserWorld.LaserFlyingVGrid()
+#create = settingsBigWorld.FlyingVGrid()
 #* Fishbone Layout
-#create = settingsLaserWorld.LaserFishboneGrid()
-#* 100x100 Traditional Layout
-#create = settingsLaserWorld.BigWarehouseGrid()
+#create = settingsBigWorld.FishboneGrid()
 # LOAD THE COLORS FROM THE SETTINGS
-paint = settingsLaserWorld.Colors()
+paint = settingsBigWorld.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
-default = settingsLaserWorld.PygameDefaults()
+default = settingsBigWorld.PygameDefaults()
 # CENTER THE GRID TO THE MIDDLE OF THE SCREEN
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 # INIT THE PYGAME MODULE
@@ -1332,26 +1330,8 @@ class Boids(pygame.sprite.Sprite):
                 time.sleep(0.5)
             
         # RUN THREADED
-        thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+        thread = concurrent.futures.ThreadPoolExecutor()
         thread.submit(run)
-
-
-    def separation(self, target):
-
-        steer = vec(0, 0)
-        dist = self.pos - target
-        desired = vec(0, 0)
-
-        if dist.x != 0 and dist.y != 0:
-            if dist.lenght() <  create.FLEE_RADIUS:
-                desired = dist.normalize() * create.MAX_VELOCITY
-            else:
-                desired = self.vel.normalize() * create.MAX_VELOCITY
-        steer = desired = self.vel.normalize() * create.MAX_VELOCITY
-        if steer.lenght() > create.MAX_FLEE_FORCE:
-            steer.scale_to_length(create.MAX_FLEE_FORCE)
-        
-        return steer
 
 
 class TreadmillItems(pygame.sprite.Sprite):
