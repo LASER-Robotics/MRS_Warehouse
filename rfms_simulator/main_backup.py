@@ -28,25 +28,22 @@ about the Google Style Guide used here go to:
 https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 '''
 
-import os
 import sys
 import argparse
 import pygame
 import random
-import time
 import timeit
-import schedule
 import concurrent.futures
-import multiprocessing
-import math
 import memory_profiler
 import pandas as pd
+import numpy as np
 #? Using the collections module since is the most efficient
 #? to implement and manipulate a queue list
 from collections import deque
 #* To see the sum of the system and user CPU Time of
 #* of the current process
 from time import process_time
+from timeit import default_timer as timer
 #* To see the memory usage in each line
 import memory_profiler
 #* Import the createWorld Module
@@ -61,11 +58,14 @@ paint = settings.Colors()
 # CHECK NaN VALUES
 nan_value = float('nan')
 # THE CA* HASH TABLE (DICT)
-castarPaths = []
+ReservationTable = []
+# CBS CONSTRAINTS
+CbsConstraints = []
 # THE SWAM HASH TABLE
 swarmAreas = {}
 #* Load the PyGame Vector2 lib
 vec = pygame.math.Vector2
+
 
 class PathPlanning:
     """
@@ -89,7 +89,6 @@ class PathPlanning:
 
         pass
 
-
     def find_free_space(self, graph, goal=world.GOAL):
         """
         Reads free nodes in World Grid using the find_neighbors(node) function,
@@ -107,7 +106,7 @@ class PathPlanning:
         Returns:
             A list with the free nodes available in the World Grid
         [Example]
-            
+
             If using the default values, this call will provide the following vectors:
             $ python3 pathPlanning.py
             [<Vector2(0, 0)>, <Vector2(1, 0)>, <Vector2(0, 1)>, <Vector2(2, 0)>, <Vector2(0, 2)>,
@@ -534,6 +533,33 @@ def vec_to_int(vector):
     return (int(vector.x), int(vector.y))
 
 
+def vec_to_list(vector_list):
+    """
+    A function that converts a PyGame list of vectors to a list of tuples.
+
+    Attributes:
+        (vector_list) (list)
+    
+    Args:
+        
+        (vector): An list of vectors in the 2D format from the PyGame Lib
+    
+    Returns:
+        
+        (list): An list of tuples
+    
+    Example:
+
+        vec_to_list([<Vector2(8, 0)>, <Vector2(8, 1)>, <Vector2(9, 1)>])
+        >>> [(8, 0), (8, 1), (9, 1)]
+
+
+
+    """
+    # RETURN THE VECTOR AS AN LIST OF TUPLES
+    return list(tuple(map(int, paths)) for paths in vector_list)
+
+
 def manhattan_distance(node_one, node_two):
     """
     A function that calculate the Manhattan Distance used in the A* Heuristic
@@ -574,83 +600,92 @@ def wait_in(node_value, previous_path):
         new_path.append(vec(values))
     return new_path
 
-def find_path_collisions(reservation_table, atual_path):
 
-    #if not castarPaths:
+def find_path_collisions(robot_goal, robot_sprites, planning, time):
 
-    #    castarPaths.append(new_path)
+    if not ReservationTable:
+        #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+        newWorld = createWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+        #* Use the Find the Free Spaces Available
+        free_space = planning.find_free_space(newWorld, robot_goal)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        #* Run the Path Planning Algorithm
+        path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+        #* Run the Paths and Add The Robots
+        robot =  createWorld.MultiRobot(random_start, robot_goal, path)
+        robot_sprites.add(robot)
+        #*TODO: TO HERE
+        #* Add the Path to the Reservation Table
+        add_first_path = vec_to_list(path)
+        ReservationTable.append(add_first_path)
+        print(f'The Resevation Table is now: {ReservationTable}\n')
 
-    #else:
-    castarPaths.append(atual_path)
-    #* DFS PANDAS
-    dfs = []
-    for l in castarPaths:
-        l_series = pd.Series(l)
-        l_df = pd.DataFrame(l_series)
-        dfs.append(l_df)
-    global df
-    df = pd.concat(dfs, ignore_index=True, axis=1)
-    #create second df of Boolean values if there are matches to the new_list
-    df2 = df[df.isin(atual_path)]
-    df_final = df2.dropna(how='all')#drop rows where no matches were found in any list
-    #print(df_final.stack())
-    #print(df_final.stack().index)
-    columns = list(df_final)
-    for i in columns:
-        for x in df_final[i]:
-            wait_in(x, atual_path)
-            #temporary_list = df_final[i].tolist()
-        #print(temporary_list)
-    return print('Collision Table\n', df_final)
-    # if not reservation_table:
-    #     # THE TIME STEPS THE ROBOT WILL RUN (START+PATH)
-    #     #time_run = list(range(0, len(new_path)+1))
-    #     castarPaths.append(new_path)
-    #     #print(f'\nThe robot steps in time is: {time_run}')
-    #     #print(f'The CA* Hash table is: {castarPaths}\n')
-
-    # else:
-    #     # THE TIME STEPS THE ROBOT WILL RUN (START+PATH)
-    #     #time_run = list(range(0, len(new_path)+1))
-    #     #print(f'\nThe robot steps in time is: {time_run}')
-    #     list_index = 0
-    #     for _ in range(len(castarPaths)):
-    #         node_collision = set(new_path).intersection(castarPaths[list_index])
-    #         time_collision_0 = [castarPaths[list_index].index(x) for x in node_collision]
-    #         time_collision_1 = [new_path.index(x) for x in node_collision]
-    #         print(f'Collisions will happen in: {time_collision_0}')
-    #         print(f'Collisions will happen in: {time_collision_1}')
-    #         print(f'Similar nodes {node_collision}')
-    #         list_index += 1
-    #     castarPaths.append(new_path)
-
-
-def discrete_time(start, robot_node_path, robot_count):
-        """
-        A function responsible to convert the robot 2D path into 3D,
-        adding the Time Step to every robot path node.
-
-            (start)           (vec2d)
-            (robot_node_path) (dict)
-            (robot_count)     (int)
-        
-        Args:
-            
-            (start)          : The Robot Random Start in vec2d format
-            (robot_node_path): The Path Dict generated by the A*
-            (robot_count)    : The Robot atual value
-        
-        Returns:
-            
-            The CA* Hash Table
-        """
-        #* Create a new Dic Key
-        robot_value = "".join(['Robot', str(robot_count)])
-        robot_path_list_vec = list(robot_node_path)
-        robot_path_list_vec.insert(0, start)
-        # Transform the Path Vec format to Tuple Format
-        robot_path_list = list(tuple(map(int, paths)) for paths in robot_path_list_vec)
-        find_path_collisions(castarPaths, robot_path_list)
+    else:
+        for path_compared in ReservationTable:
+            #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+            newWorld = createWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+            #* Use the Find the Free Spaces Available
+            free_space = planning.find_free_space(newWorld, robot_goal)
+            #* Init the Robot in a Random Position
+            random_start = random.choice(free_space)
+            #* Run the Path Planning Algorithm
+            atual_temporary_path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+            #*TODO: TO HERE
+            #path_compared = ReservationTable[0]
+            print('Path Compared: ', path_compared)
+            pretended_path = vec_to_list(atual_temporary_path)
+            print(f'Pretended Path: {pretended_path}')
+            equal_values = set(pretended_path).intersection(path_compared)
+            print(f'Equal Nodes: {equal_values}')
+            if equal_values:
+                indexes_path_compared = [path_compared.index(x) for x in equal_values]
+                indexes_new_path = [pretended_path.index(x) for x in equal_values]
+                print(f'The indexes on first are: {indexes_path_compared}')
+                print(f'The indexes on second are: {indexes_new_path}')
+                if len(equal_values) == 1:
+                    if (indexes_path_compared == indexes_new_path):
+                        print('-------------------------------')
+                        print('NEED REPLAN OR WAIT')
+                        print('-------------------------------')
+                        CbsConstraints.extend(list(equal_values))
+                        print(f'CBS Constraints: {CbsConstraints}')
+                        #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+                        newWorld = createWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+                        #* Use the Find the Free Spaces Available
+                        free_space = planning.find_free_space(newWorld, robot_goal)
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        #* Run the Path Planning Algorithm
+                        path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+                        #* Run the Paths and Add The Robots
+                        robot =  createWorld.MultiRobot(random_start, robot_goal, path)
+                        robot_sprites.add(robot)
+                        #*TODO: TO HERE
+                else:
+                    if (indexes_path_compared == indexes_new_path) or (indexes_path_compared[0] == indexes_new_path[1]):
+                        print('-------------------------------')
+                        print('NEED REPLAN OR WAIT')
+                        print('-------------------------------')
+                        CbsConstraints.extend(list(equal_values))
+                        print(f'CBS Constraints: {CbsConstraints}')
+                        #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+                        newWorld = createWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+                        #* Use the Find the Free Spaces Available
+                        free_space = planning.find_free_space(newWorld, robot_goal)
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        #* Run the Path Planning Algorithm
+                        path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+                        #* Run the Paths and Add The Robots
+                        robot =  createWorld.MultiRobot(random_start, robot_goal, path)
+                        robot_sprites.add(robot)
+                        #*TODO: TO HERE
+            #* Run the Paths and Add The Robots
+            robot =  createWorld.MultiRobot(random_start, robot_goal, atual_temporary_path)
+            robot_sprites.add(robot)
+        ReservationTable.append(pretended_path)
+        print(ReservationTable)
 
 
 def create_neighboorhood(pos, swarm_key):
@@ -699,7 +734,7 @@ def create_neighboorhood(pos, swarm_key):
     swarmAreas.update({swarm_key:first_swarm})
 
     return swarmAreas 
-    
+
 
 def create_swarms_area():
     """
@@ -783,8 +818,6 @@ def run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots):
         path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
         #* Run the Paths and Add The Robots
         robots =  createWorld.Boids(random_start, goal_poped, path)
-        #* Discretized the Path in Time Steps
-        #discrete_time(random_start, robot_path, robot_count)
         all_robots.add(robots)
     print(swarmAreas)
 
@@ -1498,7 +1531,7 @@ def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
     goals = goal
     print(f'\nThe Time Limit to Run the  Function is: {time_limit}\n')
     print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
-    newWorld = createWorld.WeightedGrid()
+    newWorld = createWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
     planning = PathPlanning()
     #* Start the Treadmill Class in a Group
     all_treadmill_items = pygame.sprite.Group()
@@ -1513,23 +1546,26 @@ def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
     robotsStartPos = deque([])
     boidsStartsPos = []
     robot_count = 0
+    start_time = timer()
     for _ in range(robots_qtd):
         robot_count += 1
         #* Pop up the Goal
         goal_poped = vec(goals.popleft())
         #* Use the Find the Free Spaces Available
-        free_space = planning.find_free_space(newWorld, goal_poped)
+        #free_space = planning.find_free_space(newWorld, goal_poped)
         #* Init the Robot in a Random Position
-        random_start = random.choice(free_space)
+        #random_start = random.choice(free_space)
         #* Run the Path Planning Algorithm
-        path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
+        #path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
         #* Run the Paths and Add The Robots
-        robots =  createWorld.MultiRobot(random_start, goal_poped, path)
+        #temporary_robot =  createWorld.MultiRobot(random_start, goal_poped, path)
         #* Discretized the Path in Time Steps
-        discrete_time(random_start, path, robot_count)
-        all_robots.add(robots)
-    
-    #print(f'The CA* Hash table is:\n{df}')
+        #temporary_path = createWorld.temporaryPath.popleft()
+        find_path_collisions(goal_poped, all_robots, planning, time)
+        #all_robots.add(new_robot)
+    end_time = timer()
+    print(f'The CBS takes {end_time-start_time} seconds to run')
+
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
