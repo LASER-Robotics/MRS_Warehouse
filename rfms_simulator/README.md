@@ -7,6 +7,7 @@ Simulação e discretização de grids para análise de algoritmos de planejamen
 - [Python 3+](https://docs.python-guide.org/starting/install3/linux/)
 - [PyGame](https://pypi.org/project/pygame/)
 - [Memory Profiler](https://pypi.org/project/memory-profiler/)
+- [Parallel Execute](https://pypi.org/project/parallel-execute/)
 
 ## Como o Pacote é dividido?
 
