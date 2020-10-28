@@ -43,7 +43,8 @@ class LaserTradGridHorizontal(object):
         #* START POINT
         self.START = (6,7)
         #* GOALS POINTS
-        self.GOAL = deque([(9,1), (9, 3), (9,5), (9,6)])
+        self.GOAL = deque([(9,1), (9, 3), (9,5), (9,0), (9,2), (9,4), (9,6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7),
+                           (5, 7), (6, 7), (7, 7), (8, 7), (9,7)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -101,8 +102,9 @@ class LaserTradGridVertical(object):
     def __init__(self):
         #* START POINT
         self.START = (6,7)
-        #* GOAL POINT
-        self.GOAL = deque([(9,1), (9, 3), (9,5)])
+        #* GOALS POINTS
+        self.GOAL = deque([(9,1), (9, 3), (9,5), (9,0), (9,2), (9,4), (9,6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7),
+                           (5, 7), (6, 7), (7, 7), (8, 7), (9,7)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -131,6 +133,8 @@ class LaserTradGridVertical(object):
         #* SET the DEFAULT Treadmill Zone
         self.TREADMILL_ZONE = [(11, 8), (11, 7), (11, 6), (11, 5), (11, 4),
                                (11, 3), (11, 2), (11, 1), (11, 0)]
+        #* SET THE NODES CONSTRAINTS
+        self.NODES_CONSTRAINTS = []
         #* SET the DEFAULT Workers Zone
         self.WORKERS_POS = [(10,1), (10, 3), (10,5)]
         #* SET the DEFAULT Delivery Zone
@@ -154,8 +158,9 @@ class LaserFlyingVGrid(object):
     def __init__(self):
         #* START POINT
         self.START = (6,7)
-        #* GOAL POINT
-        self.GOAL = deque([(9,1), (9, 3), (9,5)])
+        #* GOALS POINTS
+        self.GOAL = deque([(9,1), (9, 3), (9,5), (9,0), (9,2), (9,4), (9,6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7),
+                           (5, 7), (6, 7), (7, 7), (8, 7), (9,7)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit
@@ -194,7 +199,8 @@ class LaserFlyingVGrid(object):
         #* SET the DEFAUL Cells that the Robot Can't Move
         #? In this case is the Column where the worker is located
         self.DONT_MOVE = [(10, 8), (10, 7), (10, 6), (10,4), (10, 2), (10,0)]
-
+        #* SET THE NODES CONSTRAINTS
+        self.NODES_CONSTRAINTS = []
 
 class LaserFishboneGrid(object):
     '''
@@ -206,8 +212,9 @@ class LaserFishboneGrid(object):
     def __init__(self):
         #* START POINT
         self.START = (6,7)
-        #* GOAL POINT
-        self.GOAL = deque([(9,1), (9, 3), (9,5)])
+        #* GOALS POINTS
+        self.GOAL = deque([(9,1), (9, 3), (9,5), (9,0), (9,2), (9,4), (9,6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7),
+                           (5, 7), (6, 7), (7, 7), (8, 7), (9,7)])
         #* SET the DEFAULT Number of Robots
         self.ROBOTS_QTD = 3
         #* SET the DEFAULT TIME Start and Limit

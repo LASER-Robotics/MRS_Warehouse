@@ -34,6 +34,7 @@ import pygame
 import random
 import timeit
 import concurrent.futures
+import multiprocessing
 import memory_profiler
 import pandas as pd
 import numpy as np
@@ -59,12 +60,18 @@ default = settingsBigWorld.PygameDefaults()
 paint = settingsBigWorld.Colors()
 # CHECK NaN VALUES
 nan_value = float('nan')
+# THE SELECTED STARTS
+SelectedStarts = set()
 # THE CA* HASH TABLE (DICT)
 ReservationTable = []
+# THE SAVED PATHS
+DesiredPaths = []
 # CBS CONSTRAINTS
 CbsConstraints = []
 # THE SWAM HASH TABLE
 swarmAreas = {}
+# THE NUMBER OF SWARMS
+swarm_count = 0
 #* Load the PyGame Vector2 lib
 vec = pygame.math.Vector2
 
@@ -189,30 +196,9 @@ class PathPlanning:
         print(f'\nThe Node Cells are:\n{self.visited}')
         return self.visited
 
-    def astar_search(self, graph, start=world.START,
-                     goal = world.GOAL):
-        """
-        Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
-        and returns the shortest path using A-Star (A*) Search for the Weighted Nodes.
-        Attributes:
-            (graph) (Class)
-            (start) (tuple)
-            (goal)  (tuple)
-        
-        Args:
-            (graph): A Weighted Grid
-            (start): Is the position in the Weighted Grid that
-                     we start the Path Plannign Algorithm
-            (goal) : Is the position in the Weighted Grid that
-                     we want to achieve
-        
-        Returns:
-            The Shortest Path Using A-Star (A*) Search for the START
-            and GOAL nodes provided
-        """
-    
-        print("\n__________________ A-Star (A*) SEARCH STARTED __________________\n")    
-        #* START THE TIMER
+    def astar_search(self, graph, start,
+                     goal):
+         #* START THE TIMER
         start_time = timeit.default_timer()
         start_process_time = process_time()
         # SET THE START AND GOAL VALUES
@@ -275,8 +261,9 @@ class PathPlanning:
         
         return self.path
 
-    def cooperative_astar_search(self, graph, start=world.START,
-                                 goal = world.GOAL,
+
+    def cooperative_astar_search(self, graph, start,
+                                 goal,
                                  time = world.TIME_LIMIT):
         """
         Reads free nodes in a Wheighted Grid using the find_neighbors(node) function,
@@ -463,15 +450,23 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
 
     if not ReservationTable:
         #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-        newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+        global newWorld
+        newWorld = createBigWorld.WeightedGrid()
         #* Use the Find the Free Spaces Available
         free_space = planning.find_free_space(newWorld, robot_goal)
         #* Init the Robot in a Random Position
         random_start = random.choice(free_space)
-        #* Start the Boid Swarm
-        boidsStartsPos.append(random_start) #*TODO: CHANGE THIS
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        if vec_to_int(random_start) in SelectedStarts:
+            change_start = vec_to_int(random_start)             
+            while change_start in SelectedStarts:
+                change_start = vec_to_int(random.choice(free_space))
+            random_start = vec(change_start)
+        SelectedStarts.add(vec_to_int(random_start))
         #* Run the Path Planning Algorithm
         path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+        DesiredPaths.append(path)
         #* Run the Paths and Add The Robots
         robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
         robot_sprites.add(robot)
@@ -480,24 +475,29 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
         add_first_path = vec_to_list(path)
         ReservationTable.append(add_first_path)
         print(f'The Resevation Table is now: {ReservationTable}\n')
-
+        print(ReservationTable)
     else:
+        #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+        #newWorld = createBigWorld.WeightedGrid()
+        #* Use the Find the Free Spaces Available
+        free_space = planning.find_free_space(newWorld, robot_goal)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        if vec_to_int(random_start) in SelectedStarts:
+            change_start = vec_to_int(random_start)             
+            while change_start in SelectedStarts:
+                change_start = vec_to_int(random.choice(free_space))
+            random_start = vec(change_start)
+        SelectedStarts.add(vec_to_int(random_start))
+        #* Run the Path Planning Algorithm
+        atual_temporary_path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+        #* Run the Paths and Add The Robots
+        robot =  createBigWorld.MultiRobot(random_start, robot_goal, atual_temporary_path)
+        #*TODO: TO HERE
+        pretended_path = vec_to_list(atual_temporary_path)
+        print(f'Pretended Path: {pretended_path}')
         for path_compared in ReservationTable:
-            #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-            newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
-            #* Use the Find the Free Spaces Available
-            free_space = planning.find_free_space(newWorld, robot_goal)
-            #* Init the Robot in a Random Position
-            random_start = random.choice(free_space)
-            #* Start the Boid Swarm
-            boidsStartsPos.append(random_start) #*TODO: CHANGE THIS
-            #* Run the Path Planning Algorithm
-            atual_temporary_path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
-            #*TODO: TO HERE
-            #path_compared = ReservationTable[0]
             print('Path Compared: ', path_compared)
-            pretended_path = vec_to_list(atual_temporary_path)
-            print(f'Pretended Path: {pretended_path}')
             equal_values = set(pretended_path).intersection(path_compared)
             print(f'Equal Nodes: {equal_values}')
             if equal_values:
@@ -513,19 +513,26 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
                         CbsConstraints.extend(list(equal_values))
                         print(f'CBS Constraints: {CbsConstraints}')
                         #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-                        newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+                        #newWorld = createBigWorld.WeightedGrid()
                         #* Use the Find the Free Spaces Available
                         free_space = planning.find_free_space(newWorld, robot_goal)
                         #* Init the Robot in a Random Position
                         random_start = random.choice(free_space)
-                        #* Start the Boid Swarm
-                        boidsStartsPos.append(random_start) #*TODO: CHANGE THIS
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        if vec_to_int(random_start) in SelectedStarts:
+                            change_start = vec_to_int(random_start)             
+                            while change_start in SelectedStarts:
+                                change_start = vec_to_int(random.choice(free_space))
+                            random_start = vec(change_start)
+                        SelectedStarts.add(vec_to_int(random_start))
                         #* Run the Path Planning Algorithm
                         path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
-                        #* Run the Paths and Add The Robots
-                        robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
-                        robot_sprites.add(robot)
                         #*TODO: TO HERE
+                        #* Run the Paths and Add The Robots
+                        DesiredPaths.append(path)
+                        robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
+                        #robot_sprites.add(robot)
                 else:
                     if (indexes_path_compared == indexes_new_path) or (indexes_path_compared[0] == indexes_new_path[1]):
                         print('-------------------------------')
@@ -534,24 +541,30 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
                         CbsConstraints.extend(list(equal_values))
                         print(f'CBS Constraints: {CbsConstraints}')
                         #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-                        newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+                        #newWorld = createBigWorld.WeightedGrid()
                         #* Use the Find the Free Spaces Available
                         free_space = planning.find_free_space(newWorld, robot_goal)
                         #* Init the Robot in a Random Position
                         random_start = random.choice(free_space)
-                        #* Start the Boid Swarm
-                        boidsStartsPos.append(random_start) #*TODO: CHANGE THIS
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        if vec_to_int(random_start) in SelectedStarts:
+                            change_start = vec_to_int(random_start)             
+                            while change_start in SelectedStarts:
+                                change_start = vec_to_int(random.choice(free_space))
+                            random_start = vec(change_start)
+                        SelectedStarts.add(vec_to_int(random_start))
                         #* Run the Path Planning Algorithm
                         path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
+                        DesiredPaths.append(path)
                         #* Run the Paths and Add The Robots
                         robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
-                        robot_sprites.add(robot)
+                        #robot_sprites.add(robot)
                         #*TODO: TO HERE
-            #* Run the Paths and Add The Robots
-            robot =  createBigWorld.MultiRobot(random_start, robot_goal, atual_temporary_path)
+                
             robot_sprites.add(robot)
         ReservationTable.append(pretended_path)
-        print(ReservationTable)
+        print(len(ReservationTable))
 
 
 def create_neighboorhood(pos, swarm_key):
@@ -613,59 +626,81 @@ def create_swarms_area(robot_goal, robot_sprites, planning, time):
         
         The Swarm Hash Table
     """
-    #selected_sprite = random.choice(robots.sprites())
-    #pygame.draw.rect(createWorld.screen, (255, 128, 0), selected_sprite.rect, 1)
-    swarm_count = 0
-    for pos in boidsStartsPos:
-        swarm_count += 1
-        swarm_value = ['Swarm', str(swarm_count)]
-        swarm_key = "".join(swarm_value)
-        #* If the swarm was not create before, create a new one
-        if not swarmAreas:
-            pygame.draw.rect(createBigWorld.screen, paint.COLOR_GREEN,
-                            [(pos.x-2)*100, (pos.y-2)*100, 500, 500], 1)
-            create_neighboorhood(pos, swarm_key)
+
+    global newWorld
+    newWorld = createBigWorld.WeightedGrid()
+    #* Use the Find the Free Spaces Available
+    free_space = planning.find_free_space(newWorld, robot_goal)
+    #* Init the Robot in a Random Position
+    random_start = random.choice(free_space)
+    #* Init the Robot in a Random Position
+    random_start = random.choice(free_space)
+    if vec_to_int(random_start) in SelectedStarts:
+        change_start = vec_to_int(random_start)             
+        while change_start in SelectedStarts:
+            change_start = vec_to_int(random.choice(free_space))
+        random_start = vec(change_start)
+    # SWARM CREATION
+    global swarm_count
+    swarm_count += 1
+    swarm_value = ['Swarm', str(swarm_count)]
+    swarm_key = "".join(swarm_value)
+    #* If the swarm was not create before, create a new one
+    if not swarmAreas:
+        pygame.draw.rect(createBigWorld.screen, paint.COLOR_GREEN,
+                        [(random_start.x-2)*100, (random_start.y-2)*100, 500, 500], 1)
+        create_neighboorhood(random_start, swarm_key)
+        #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+        #newWorld = createBigWorld.WeightedGrid()
+        #* Use the Find the Free Spaces Available
+        free_space = planning.find_free_space(newWorld, robot_goal)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
+        #* Run the Path Planning Algorithm
+        path = planning.astar_search(newWorld, robot_goal, random_start)
+        #* Run the Paths and Add The Robots
+        robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
+        robot_sprites.add(robot)
+    else:
+        #* If the swarm was created before, check if the new swam area
+        #* is inside the previous swarm
+        if any(random_start in values for values in swarmAreas.values()):
+            #* Check in with Swarm the Position was Found
+            keys = [key for key, value in swarmAreas.items() if random_start in value]
+            print('\nFound a new Robot neighboors in inside a known Swarm, '+
+                    'including the {} into {}...\n'.format(swarm_key, keys))
+            swarm_key = str(keys[0])
+            create_neighboorhood(random_start, swarm_key)
+            #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+            #newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
+            #* Use the Find the Free Spaces Available
+            #free_space = planning.find_free_space(newWorld, robot_goal)
+            #* Init the Robot in a Random Position
+            #random_start = random.choice(free_space)
+            #* Run the Path Planning Algorithm
+            #path = planning.astar_search(newWorld, robot_goal, random_start)
+            #* Run the Paths and Add The Robots
+            #robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
+            find_path_collisions(robot_goal, robot_sprites, planning, time)
+            #robot_sprites.add(robot)
+            #*TODO: TO HERE
             
-
         else:
-            #* If the swarm was created before, check if the new swam area
-            #* is inside the previous swarm
-            if any(pos in values for values in swarmAreas.values()):
-                #* Check in with Swarm the Position was Found
-                keys = [key for key, value in swarmAreas.items() if pos in value]
-                print('\nFound a new Robot neighboors in inside a known Swarm, '+
-                        'including the {} into {}...\n'.format(swarm_key, keys))
-                swarm_key = str(keys[0])
-                create_neighboorhood(pos, swarm_key)
-               #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-                newWorld = createBigWorld.WeightedGrid(world_nodes_constraints=CbsConstraints)
-                #* Use the Find the Free Spaces Available
-                free_space = planning.find_free_space(newWorld, robot_goal)
-                #* Init the Robot in a Random Position
-                random_start = random.choice(free_space)
-                #* Run the Path Planning Algorithm
-                path = planning.astar_search(newWorld, robot_goal, random_start)
-                #* Run the Paths and Add The Robots
-                robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
-                robot_sprites.add(robot)
-                #*TODO: TO HERE
-                
-            else:
-                #* Create a new Swarm Neighboor
-                create_neighboorhood(pos, swarm_key)
-                #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
-                newWorld = createBigWorld.WeightedGrid()
-                #* Use the Find the Free Spaces Available
-                free_space = planning.find_free_space(newWorld, robot_goal)
-                #* Init the Robot in a Random Position
-                random_start = random.choice(free_space)
-                #* Run the Path Planning Algorithm
-                path = planning.astar_search(newWorld, robot_goal, random_start)
-                #* Run the Paths and Add The Robots
-                robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
-                robot_sprites.add(robot)
-                #*TODO: TO HERE
-
+            #* Create a new Swarm Neighboor
+            create_neighboorhood(random_start, swarm_key)
+            #*TODO: CREATE A NEW FUNCTION FOR THIS SINCE REPEATS FROM HERE
+            #newWorld = createBigWorld.WeightedGrid()
+            #* Use the Find the Free Spaces Available
+            #free_space = planning.find_free_space(newWorld, robot_goal)
+            #* Init the Robot in a Random Position
+            #random_start = random.choice(free_space)
+            #* Run the Path Planning Algorithm
+            path = planning.astar_search(newWorld, robot_goal, random_start)
+            #* Run the Paths and Add The Robots
+            robot =  createBigWorld.MultiRobot(random_start, robot_goal, path)
+            robot_sprites.add(robot)
+            #*TODO: TO HERE
+        #robot_sprites.add(robot)
 
 def run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots):
     """
@@ -698,19 +733,9 @@ def run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots):
         robot_count += 1
         #* Pop up the Goal
         goal_poped = vec(goals.popleft())
-        #* Use the Find the Free Spaces Available
-        #free_space = planning.find_free_space(newWorld, goal_poped)
-        #* Init the Robot in a Random Position
-        #random_start = random.choice(free_space)
-        find_path_collisions(goal_poped, all_robots, planning, time)
-        #* Start the Boid Swarm
-        #boidsStartsPos.append(random_start)
+
         create_swarms_area(goal_poped, all_robots, planning, time)
-        #* Run the Path Planning Algorithm
-        #path = planning.cooperative_astar_search(newWorld, goal_poped, random_start, time)
-        #* Run the Paths and Add The Robots
-        #robots =  createWorld.Boids(random_start, goal_poped, path)
-        #all_robots.add(robots)
+
     print(swarmAreas)
 
 def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
@@ -748,10 +773,9 @@ def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
     #* Add the Robots Sprite Classes to the Groups
     all_robots = pygame.sprite.Group()
     # SET THE MULTIPLE PATHS
-    global pathsGlobal, robotsStartPos, boidsStartsPos
+    global pathsGlobal, robotsStartPos
     pathsGlobal = deque([])
     robotsStartPos = deque([])
-    boidsStartsPos = []
     robot_count = 0
     for _ in range(robots_qtd):
         robot_count += 1
@@ -761,6 +785,12 @@ def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
         free_space = planning.find_free_space(newWorld, goal_poped)
         #* Init the Robot in a Random Position
         random_start = random.choice(free_space)
+        if vec_to_int(random_start) in SelectedStarts:
+            change_start = vec_to_int(random_start)             
+            while change_start in SelectedStarts:
+                change_start = vec_to_int(random.choice(free_space))
+            random_start = vec(change_start)
+        SelectedStarts.add(vec_to_int(random_start))
         #* Run the Path Planning Algorithm
         path = planning.astar_search(newWorld, goal_poped, random_start)
         #* Run the Paths and Add The Robots
@@ -769,6 +799,8 @@ def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
+    global FLAG
+    FLAG = False
     while running:
         # ADJUST THE CLOCK
         createBigWorld.clock.tick(default.FPS)
@@ -798,8 +830,8 @@ def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     pygame.event.clear()
-                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
-                        executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+                    with concurrent.futures.ProcessPoolExecutor() as executor:
+                       executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -851,9 +883,8 @@ def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
         #create_swarms_area()
         pygame.display.flip()
 
-
-def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
-                          robots_qtd=world.ROBOTS_QTD):
+def run_cbs(goal=world.GOAL,time=world.TIME_LIMIT,
+            robots_qtd=world.ROBOTS_QTD):
     """
     The Cooperative A-Star (STA*) Search function of the Path Planning Library, is
     responsible to run the Weighted World and calculate the shortest path in a
@@ -917,7 +948,14 @@ def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
         find_path_collisions(goal_poped, all_robots, planning, time)
         #all_robots.add(new_robot)
     end_time = timer()
+    print('----------------- SIMULATION FINISHED ----------------\n')
     print(f'The CBS takes {end_time-start_time} seconds to run')
+    all_paths = createBigWorld.AllPaths
+    print(f'The CBS Runned {len(all_paths)} Paths')
+    makespan = max(map(len, all_paths))
+    print(f'The Makespan is:  {makespan}')
+    sum_of_costs = sum(map(len, all_paths))
+    print(f'The Sum of Costs is:  {sum_of_costs}')
 
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
@@ -947,12 +985,13 @@ def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
                     # Dump the wall list for saving (if needed)
                     #* Use the command to show the actual obstacles values if modified
                     print('The obstacle tuples drawn is:\n',
-                            [(int(loc.x), int(loc.y)) for loc in createBigWorld.obstaclesPositionGlobal])
+                            [(int(loc.x), int(loc.y)) for loc in newWorld.obstaclesPosition])
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     pygame.event.clear()
-                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+                    with concurrent.futures.ProcessPoolExecutor() as executor:
                         executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+                    #all_robots.update(all_robots, all_treadmill_items, newWorld)
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -970,7 +1009,6 @@ def run_cooperative_astar(goal=world.GOAL,time=world.TIME_LIMIT,
                 #* RIGHT MOUSE TO CHANGE THE GOAL
                 if event.button == 3:
                     goal_node = mouse_pos
-                #path = planning.astar_search(newWorld, goal_node, start_node) 
         #pygame.event.pump()
         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createBigWorld.clock.get_fps()))
@@ -1048,13 +1086,19 @@ def run_mapf_swarm(goal=world.GOAL,time=world.TIME_LIMIT,
     #* Add the Robots Sprite Classes to the Groups
     all_robots = pygame.sprite.Group()
     # SET THE MULTIPLE PATHS
-    global pathsGlobal, boidsStartsPos
+    global pathsGlobal
     pathsGlobal = deque([])
-    boidsStartsPos = []
     start_time = timer()
     run_swarm(robots_qtd, goals, time, newWorld, planning, all_robots)
     end_time = timer()
+    print('----------------- SIMULATION FINISHED ----------------\n')
     print(f'The Swarm takes {end_time-start_time} seconds to run')
+    all_paths = createBigWorld.AllPaths
+    print(f'The Swarm Runned {len(all_paths)} Paths')
+    makespan = max(map(len, all_paths))
+    print(f'The Makespan is:  {makespan}')
+    sum_of_costs = sum(map(len, all_paths))
+    print(f'The Sum of Costs is:  {sum_of_costs}')
     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
     # * If still running do the Loop
     running = True
@@ -1087,8 +1131,9 @@ def run_mapf_swarm(goal=world.GOAL,time=world.TIME_LIMIT,
                 if event.key == pygame.K_SPACE:
                     #* Run the robot movement simulation
                     pygame.event.clear()
-                    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
                         executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+                        #time.sleep(1)
             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
@@ -1155,7 +1200,7 @@ def main():
     parser.add_argument('--mastar', action='store_true',
                         help='Runs the Multi-Agent A* Search')
 
-    parser.add_argument('--castar', action='store_true',
+    parser.add_argument('--cbs', action='store_true',
                         help='Runs the Cooperative A* Search')
 
     parser.add_argument('--mapfs', action='store_true',
@@ -1168,8 +1213,8 @@ def main():
 
     if args.mastar:
         run_multiagent_astar()
-    if args.castar:
-        run_cooperative_astar()
+    if args.cbs:
+        run_cbs()
     if args.mapfs:
         run_mapf_swarm()
 
