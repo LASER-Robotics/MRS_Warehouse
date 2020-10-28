@@ -36,7 +36,7 @@ import pygame
 import heapq
 import random
 import schedule
-import threading
+from pexecute.thread import ThreadLoom
 import concurrent.futures
 from world import settings
 from multiprocessing import Process
@@ -50,13 +50,13 @@ vec = pygame.math.Vector2
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
 #* Horizontal Layout
-create = settingsBigWorld.TradGridHorizontal()
+# create = settingsBigWorld.TradGridHorizontal()
 #* Vertical Layout
-#create = settingsBigWorld.TradGridVertical()
+create = settingsBigWorld.TradGridVertical()
 #* Flying-V Layout
-#create = settingsBigWorld.FlyingVGrid()
+# create = settingsBigWorld.FlyingVGrid()
 #* Fishbone Layout
-#create = settingsBigWorld.FishboneGrid()
+# create = settingsBigWorld.FishboneGrid()
 # LOAD THE COLORS FROM THE SETTINGS
 paint = settingsBigWorld.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
@@ -67,6 +67,9 @@ os.environ['SDL_VIDEO_CENTERED'] = '1'
 pygame.init()
 # INIT THE PYGAME CLOCK
 clock = pygame.time.Clock()
+# SAVE THE PATHS TO CALCULATE MAKESPAN AND
+# SUM OF COSTS
+AllPaths = []
 
 
 class WorldGrid:
@@ -396,7 +399,7 @@ class WorldGrid:
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.obstacle_img = pygame.image.load(os.path.join(self.icon_dir, 'pod.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.obstacle_img = pygame.transform.scale(self.obstacle_img, (70,70))
+            self.obstacle_img = pygame.transform.scale(self.obstacle_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.obstacle_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.obstacle_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -420,7 +423,7 @@ class WorldGrid:
             self.treadmill_img = pygame.image.load(os.path.join(self.icon_dir,
                                                    'treadmill.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.treadmill_img = pygame.transform.scale(self.treadmill_img, (100,100))
+            self.treadmill_img = pygame.transform.scale(self.treadmill_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.treadmill_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.treadmill_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -446,7 +449,7 @@ class WorldGrid:
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.worker_img = pygame.image.load(os.path.join(self.icon_dir, 'worker.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.worker_img = pygame.transform.scale(self.worker_img, (50,50))
+            self.worker_img = pygame.transform.scale(self.worker_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.worker_center = ((self.workers_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                   (self.workers_vector.y *cellSizeWidth) + (cellSizeHeight / 2))
@@ -497,7 +500,7 @@ class WorldGrid:
         for recharge_zone in rechargePositionGlobal:
             rect_recharge = pygame.Rect(recharge_zone * cellSizeWidth,
                                         (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_VERMILION, rect_recharge)
+            pygame.draw.rect(screen, paint.COLOR_SOFT_YELLOW, rect_recharge)
             self.recharge_vector = vec(recharge_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
@@ -506,7 +509,7 @@ class WorldGrid:
                                                           'arrow_white.png')).convert_alpha()
             # SCALE THE IMAGE
             self.recharge_img = pygame.transform.scale(self.recharge_img,
-                                                       (30,30))
+                                                       (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.recharge_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.recharge_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -526,7 +529,7 @@ class WorldGrid:
             # Draw a obstacle as a retancle with format of the cell size
             rect_pickup = pygame.Rect(pickup_zone * cellSizeWidth,
                                       (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_SOFT_YELLOW, rect_pickup)
+            pygame.draw.rect(screen, paint.COLOR_VERMILION, rect_pickup)
             self.pickup_vector = vec(pickup_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
@@ -535,7 +538,7 @@ class WorldGrid:
                                                              'arrow_white.png')).convert_alpha()
             # SCALE THE IMAGE
             self.pickup_img = pygame.transform.scale(self.pickup_img,
-                                                             (30,30))
+                                                     (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.pickup_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.pickup_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -572,7 +575,7 @@ class WorldGrid:
         # LOAD THE ARROW IMG TO THE PYGAME MODULE
         self.arrow_img = pygame.image.load(os.path.join(self.icon_dir, 'arrow_black.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.arrow_img = pygame.transform.scale(self.arrow_img, (20,20))
+        self.arrow_img = pygame.transform.scale(self.arrow_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # SET ARROW DIRECTIONS
         #* Since the arrow icon is pointing to right we need the arrows in other directions
         self.arrow_point_up = (1,0)
@@ -607,7 +610,7 @@ class WorldGrid:
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.start_img = pygame.image.load(os.path.join(self.icon_dir, 'start.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.start_img = pygame.transform.scale(self.start_img, (50,50))
+        self.start_img = pygame.transform.scale(self.start_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # FILL THE IMAGE WITH THE BLEND MODULE
         self.start_img.fill((255, 0, 0, 255), special_flags = pygame.BLEND_RGBA_MULT)
         self.start_center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
@@ -635,7 +638,7 @@ class WorldGrid:
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.goal_img = pygame.image.load(os.path.join(self.icon_dir, 'goal.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.goal_img = pygame.transform.scale(self.goal_img, (50,50))
+        self.goal_img = pygame.transform.scale(self.goal_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # FILL THE IMAGE WITH THE BLEND MODULE
         #self.goal_img.fill(special_flags = pygame.BLEND_RGBA_MULT)
         self.goal_center = ((self.goal.x * cellSizeWidth) + (cellSizeHeight / 2),
@@ -855,120 +858,6 @@ class PriorityQueue:
         #* Check if the search ends
         return len(self.nodes) == 0
 
-
-class SingleRobot(pygame.sprite.Sprite):
-    '''
-    Adjust the Robot Icon and draw in the Grid as a Sprite
-
-    Args:
-
-        start (vector2d): The Robot start node position (X , Y)
-                          in the Vector2d PyGame format
-        goal (vector2d):  The Robot goal position (X, Y) in the
-                          Vector2d PyGame format
-        path (vector2d):  The Shortest Path the robot will run
-
-    Returns:
-
-        The Robot icon translated to the PyGame Library and Draw
-        at the specified START location
-    '''
-    # The Sprite for the Robots
-    def __init__(self, start, goal, path):
-
-        pygame.sprite.Sprite.__init__(self)
-        # THE PATH VARIABLES
-        self.path = path
-        self.start = start
-        #* The Start used to Move the Robot
-        self.start_pos = (int(start.x), int(start.y))
-        self.goal_pos = goal
-        # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
-        self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
-        # LOAD THE ROBOT IMG TO THE PYGAME MODULE
-        self.image = pygame.image.load(os.path.join(self.icon_dir, 'robot.png')).convert_alpha()
-        # SCALE THE IMAGE
-        self.image = pygame.transform.scale(self.image, (50,50))
-        # DRAWS A RECTANGLE FOR THE FIGURE
-        self.rect = self.image.get_rect()
-        # FILL THE IMAGE WITH THE BLEND MODULE
-        self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
-                            (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
-        # SET THE ROTATION
-        self.rotation = 0
-        # SET THE SPEED
-        self.x_speed = create.MAX_VELOCITY
-        self.y_speed = create.MAX_VELOCITY
-        # SET THE PATH HEAP WHERE THE ROBOT WILL MOVE
-        self.robot_path_pop = deque([])
-        # SET the PATH for the Robot as Global
-        global robotPath, pathVector
-        robotPath = deque([])
-        pathVector = deque([])
-        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
-        self.move_left = vec(1, 0)
-        self.move_bottom = vec(0, 1)
-        self.move_right = vec(-1, 0)
-        self.move_top = vec(0, -1)
-        #* Set the Current position on the Node
-        self.current_pos = self.path[(self.start_pos)] + self.start
-        robotPath.extend([self.current_pos])
-        path_vector_start = self.current_pos - self.start
-        pathVector.extend([path_vector_start])
-        while self.current_pos != self.goal_pos:
-            self.path_vector = self.path[(self.current_pos.x, self.current_pos.y)]
-            pathVector.extend([self.path_vector])
-            self.current_pos = self.current_pos + self.path[(int(self.current_pos.x),
-                                                             int(self.current_pos.y))]
-            robotPath.extend([self.current_pos])         
-
-        print(f'The robot path was the nodes: {list(robotPath)}\n')
-        print(f'The robot movements desired is: {list(pathVector)}\n')
-
-    def update(self):
-        '''
-        Update the Robot Location at every Frame when SPACE is Pressed
-
-        Args:
-
-            None
-        
-        Returns:
-
-            The Robot icon translated to the PyGame Library and Draw
-            at the Screen moving to START to GOAL along the shortest
-            path found by the Search Algorithm.
-        '''
-        try:
-            #* Pick the Path Vector 
-            vector = pathVector.popleft()
-            atual_pos = robotPath.popleft()
-            print(f'The Current Robot Position is: {atual_pos}\n')
-            #* Move to Left
-            if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
-
-                self.rect.x += create.MAX_VELOCITY
-            #* Move to Right
-            elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
-
-                self.rect.x -= create.MAX_VELOCITY
-            #* Move to Top
-            elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
-
-                self.rect.y -= create.MAX_VELOCITY
-            #* Move to Bottom
-            else:
-
-                self.rect.y += create.MAX_VELOCITY
-        #* Finish the Animation
-        except:
-            print('------------------')
-            print('Animation Finised!')
-            print('------------------\n')
-            print('To RESTART change the robot start or goal position and press SPACE\n')
-            print('To QUIT close the Screen\n')
-
-
 global allPathsVectors, allRobotsPaths, temporaryPath
 allPathsVectors = deque([])
 allRobotsPaths = deque([])
@@ -995,7 +884,7 @@ class MultiRobot(pygame.sprite.Sprite):
     # The Sprite for the Robots
 
     def __init__(self, start, goal, path):
-
+        self.loom = ThreadLoom(max_runner_cap=create.ROBOTS_QTD)
         pygame.sprite.Sprite.__init__(self)
         print("\n__________________ STARTING A NEW ROBOT __________________\n")  
         # THE MULTI ROBOT VARIABLES
@@ -1011,7 +900,7 @@ class MultiRobot(pygame.sprite.Sprite):
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.image = pygame.image.load(os.path.join(self.icon_dir, 'robot.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.image = pygame.transform.scale(self.image, (50,50))
+        self.image = pygame.transform.scale(self.image, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # DRAWS A RECTANGLE FOR THE FIGURE
         self.rect = self.image.get_rect()
         # FILL THE IMAGE WITH THE BLEND MODULE
@@ -1019,9 +908,6 @@ class MultiRobot(pygame.sprite.Sprite):
                             (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
         # SET THE ROTATION
         self.rotation = 0
-        # SET THE ACCELERATION AND VELOCITY
-        self.vel = vec(create.MAX_VELOCITY).rotate(0)
-        self.acc = vec(0,0)
         # BOOLEAN TURN CHECK
         self.turn_left = False
         self.turn_right = False
@@ -1052,6 +938,8 @@ class MultiRobot(pygame.sprite.Sprite):
         allPathsVectors.extend([list(pathVector)])
         allRobotsPaths.extend([list(robotPath)])
         temporaryPath.append(list(robotPath))
+        global AllPaths
+        AllPaths.append(list(robotPath))
         print(f'The robot path was the nodes: {list(robotPath)}')
         print(f'The robot movements desired is: {list(pathVector)}\n')
 
@@ -1074,6 +962,7 @@ class MultiRobot(pygame.sprite.Sprite):
         clock = pygame.time.Clock()
         dt = clock.tick(default.FPS)
         #* The Robot Paths
+        global robot_path_poped, path_poped
         robot_path_poped = allRobotsPaths.popleft()
         print(f'Robot Path: {robot_path_poped}\n')
         #* The Vector Movement Desired
@@ -1092,9 +981,10 @@ class MultiRobot(pygame.sprite.Sprite):
                 vec_pos = current_pos
                 #* Draws the Area were the Robots look for Boids
                 #pygame.draw.rect(screen, paint.COLOR_GREEN, [(vec_pos.x-2)*100,
-                                 #(vec_pos.y-2)*100, 500, 500], 0)
+                                #(vec_pos.y-2)*100, 500, 500], 0)
                 #* Move to Left
                 if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
+                    #pygame.event.clear()
                     #* Checks if the Turn was alredy Made
                     if not self.turn_left:
                         #* If not rotate
@@ -1105,8 +995,10 @@ class MultiRobot(pygame.sprite.Sprite):
                         self.turn_top = False
                         #* Now move
                         self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
                     else:
                         self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
                 #* Move to Right
                 elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
                     #* Checks if the Turn was alredy Made
@@ -1119,8 +1011,10 @@ class MultiRobot(pygame.sprite.Sprite):
                         self.turn_top = False
                         #* Now move
                         self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
                     else:
                         self.rect.x -= create.MAX_VELOCITY
+                        #pygame.display.flip()
 
                 #* Move to Top
                 elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
@@ -1134,8 +1028,10 @@ class MultiRobot(pygame.sprite.Sprite):
                         self.turn_top = True
                         #* Now move
                         self.rect.y -= create.MAX_VELOCITY
+                        #pygame.display.flip()
                     else:
                         self.rect.y -= create.MAX_VELOCITY
+                        #pygame.display.flip()
 
                 #* Move to Bottom
                 else:
@@ -1148,187 +1044,13 @@ class MultiRobot(pygame.sprite.Sprite):
                         self.turn_top = False
                         #* Now move
                         self.rect.y += create.MAX_VELOCITY
+                        #pygame.display.flip()
                     else:
                         self.rect.y += create.MAX_VELOCITY
-                
-                time.sleep(0.5)
-            
-        # RUN THREADED
-        thread = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-        thread.submit(run)
+                        #pygame.display.flip()
+                #pygame.display.flip()
+                time.sleep(3) # 3 DEU BOM
 
-
-global boidsPathsVectors, boidsPaths
-boidsPathsVectors = deque([])
-boidsPaths = deque([])
-class Boids(pygame.sprite.Sprite):
-
-    def __init__(self, start, goal, path):
-        pygame.sprite.Sprite.__init__(self)
-        print("\n__________________ STARTING A NEW ROBOT __________________\n")
-        # THE MULTI ROBOT VARIABLES
-        self.start = start
-        self.start_pos = (int(start.x), int(start.y))
-        self.goal_pos = goal
-        self.path = path
-        print(f'Robot Start Position: {self.start}')
-        print(f'Robot Goal Position: {self.goal_pos}')
-        print(f'Robot Path: {self.path}')
-        # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
-        self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
-        # LOAD THE ROBOT IMG TO THE PYGAME MODULE
-        self.image = pygame.image.load(os.path.join(self.icon_dir, 'robot.png')).convert_alpha()
-        # SCALE THE IMAGE
-        self.image = pygame.transform.scale(self.image, (50,50))
-        # DRAWS A RECTANGLE FOR THE FIGURE
-        self.rect = self.image.get_rect()
-        # FILL THE IMAGE WITH THE BLEND MODULE
-        self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
-                            (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
-        # SET THE ROTATION
-        self.rotation = 0
-        # SET THE ACCELERATION AND VELOCITY
-        self.vel = vec(create.MAX_VELOCITY).rotate(0)
-        self.acc = vec(0,0)
-        # SET the PATH and the PATH VECTOR as Global
-        global robotPath, pathVector
-        robotPath = deque([])
-        pathVector = deque([])
-        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
-        self.move_left = vec(1, 0)
-        self.move_bottom = vec(0, 1)
-        self.move_right = vec(-1, 0)
-        self.move_top = vec(0, -1)
-        # BOOLEAN TURN CHECK
-        self.turn_left = False
-        self.turn_right = False
-        self.turn_bottom = False
-        self.turn_top = True
-        # SET the PATH and the PATH VECTOR as Global
-        global boidPath, boidVector
-        boidPath = deque([])
-        boidVector = deque([])
-        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
-        self.move_left = vec(1, 0)
-        self.move_bottom = vec(0, 1)
-        self.move_right = vec(-1, 0)
-        self.move_top = vec(0, -1)
-        #self.wait = vec(0, 0)
-        #* Set the Current position on the Node
-        self.current_pos = self.path[(self.start_pos)] + self.start
-        robotPath.extend([self.current_pos])
-        path_vector_start = self.current_pos - self.start
-        pathVector.extend([path_vector_start])
-        while self.current_pos != self.goal_pos:
-            self.path_vector = self.path[(self.current_pos.x, self.current_pos.y)]
-            pathVector.extend([self.path_vector])
-            self.current_pos = self.current_pos + self.path[(int(self.current_pos.x),
-                                                             int(self.current_pos.y))]
-            robotPath.extend([self.current_pos])
-        # PUT THE PATH AND VECTORS AS GLOBAL
-        boidsPathsVectors.extend([list(pathVector)])
-        boidsPaths.extend([list(robotPath)])
-        print(f'The robot path was the nodes: {list(robotPath)}')
-        print(f'The robot movements desired is: {list(pathVector)}\n')
-
-
-    def update(self, robots, treadmill, worldGrid):
-        '''
-        Update the Robot Location at every Frame when SPACE is Pressed
-
-        Args:
-
-            None
-        
-        Returns:
-
-            The Robot icon translated to the PyGame Library and Draw
-            at the Screen moving to START to GOAL along the shortest
-            path found by the Search Algorithm.
-        '''
-        # INICIO DA INSTANCIA DO RELÓGIO
-        clock = pygame.time.Clock()
-        dt = clock.tick(default.FPS)
-        #* The Robot Paths
-        boid_path_poped = boidsPaths.popleft()
-        print(f'Robot Path: {boid_path_poped}\n')
-        #* The Vector Movement Desired
-        path_poped = boidsPathsVectors.popleft()
-        print(f'\nRobot Path Movement: {path_poped}')
-
-        def run():
-            pygame.event.clear()
-            path_iterator = iter(boid_path_poped)
-            for vector in path_poped:
-                pygame.event.pump()
-                current_pos = vec(next(path_iterator, 'Goal Reached'))
-                #print(f'\nThe Current Robot Movements is: {vector}')
-                #print(f'The Current Robot Position is: {current_pos}\n')
-                robots.draw(screen)
-                vec_pos = current_pos
-                #* Draws the Area were the Robots look for Boids
-                pygame.draw.rect(screen, paint.COLOR_ORANGE, [(vec_pos.x-2)*100,
-                                 (vec_pos.y-2)*100, 500, 500], 0)
-                #* Move to Left
-                if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
-                    #* Checks if the Turn was alredy Made
-                    if not self.turn_left:
-                        #* If not rotate
-                        self.image = pygame.transform.rotate(self.image, -90)
-                        self.turn_left = True
-                        self.turn_right = False
-                        self.turn_bottom = False
-                        self.turn_top = False
-                        #* Now move
-                        self.rect.x += create.MAX_VELOCITY
-                    else:
-                        self.rect.x += create.MAX_VELOCITY
-                #* Move to Right
-                elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
-                    #* Checks if the Turn was alredy Made
-                    if not self.turn_right:
-                        #* If not rotate
-                        self.image = pygame.transform.rotate(self.image, 90)
-                        self.turn_right = True
-                        self.turn_left = False
-                        self.turn_bottom = False
-                        self.turn_top = False
-                        #* Now move
-                        self.rect.x += create.MAX_VELOCITY
-                    else:
-                        self.rect.x -= create.MAX_VELOCITY
-
-                #* Move to Top
-                elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
-                    #* Checks if the Turn was alredy Made
-                    if not self.turn_top:
-                        #* If not rotate
-                        self.image = pygame.transform.rotate(self.image, 90)
-                        self.turn_right = True
-                        self.turn_left = False
-                        self.turn_bottom = False
-                        self.turn_top = True
-                        #* Now move
-                        self.rect.y -= create.MAX_VELOCITY
-                    else:
-                        self.rect.y -= create.MAX_VELOCITY
-
-                #* Move to Bottom
-                else:
-                    if not self.turn_bottom:
-                        #* If not rotate
-                        self.image = pygame.transform.rotate(self.image, 180)
-                        self.turn_right = True
-                        self.turn_left = False
-                        self.turn_bottom = True
-                        self.turn_top = False
-                        #* Now move
-                        self.rect.y += create.MAX_VELOCITY
-                    else:
-                        self.rect.y += create.MAX_VELOCITY
-                
-                time.sleep(0.5)
-            
         # RUN THREADED
         thread = concurrent.futures.ThreadPoolExecutor()
         thread.submit(run)
@@ -1348,7 +1070,7 @@ class TreadmillItems(pygame.sprite.Sprite):
         at the specified START location
     '''
     # The Sprite for the Robots
-    def __init__(self, items_start=(11,0)):
+    def __init__(self, items_start=create.GRID_WIDTH-1):
 
         pygame.sprite.Sprite.__init__(self)
     
@@ -1359,7 +1081,7 @@ class TreadmillItems(pygame.sprite.Sprite):
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.image = pygame.image.load(os.path.join(self.icon_dir, 'box.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.image = pygame.transform.scale(self.image, (50,50))
+        self.image = pygame.transform.scale(self.image, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # DRAWS A RECTANGLE FOR THE FIGURE
         self.rect = self.image.get_rect()
         # FILL THE IMAGE WITH THE BLEND MODULE
@@ -1372,3 +1094,8 @@ class TreadmillItems(pygame.sprite.Sprite):
 
         if self.rect.top > screenSizeHeight:
             self.rect.bottom = 0
+
+
+def return_all_paths(self):
+
+    return AllPaths

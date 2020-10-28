@@ -52,9 +52,9 @@ vec = pygame.math.Vector2
 #* Horizontal Layout
 create = settingsLaserWorld.LaserTradGridHorizontal()
 #* Vertical Layout
-#create = settingsLaserWorld.LaserTradGridVertical()
+# create = settingsLaserWorld.LaserTradGridVertical()
 #* Flying-V Layout
-#create = settingsLaserWorld.LaserFlyingVGrid()
+# create = settingsLaserWorld.LaserFlyingVGrid()
 #* Fishbone Layout
 #create = settingsLaserWorld.LaserFishboneGrid()
 #* 100x100 Traditional Layout
@@ -69,6 +69,9 @@ os.environ['SDL_VIDEO_CENTERED'] = '1'
 pygame.init()
 # INIT THE PYGAME CLOCK
 clock = pygame.time.Clock()
+# SAVE THE PATHS TO CALCULATE MAKESPAN AND
+# SUM OF COSTS
+AllPaths = []
 
 
 class WorldGrid:
@@ -1054,6 +1057,8 @@ class MultiRobot(pygame.sprite.Sprite):
         allPathsVectors.extend([list(pathVector)])
         allRobotsPaths.extend([list(robotPath)])
         temporaryPath.append(list(robotPath))
+        global AllPaths
+        AllPaths.append(list(robotPath))
         print(f'The robot path was the nodes: {list(robotPath)}')
         print(f'The robot movements desired is: {list(pathVector)}\n')
 
@@ -1207,7 +1212,7 @@ class Boids(pygame.sprite.Sprite):
         self.turn_bottom = False
         self.turn_top = True
         # SET the PATH and the PATH VECTOR as Global
-        global boidPath, boidVector
+        global boidPath, boidVector, AllPaths
         boidPath = deque([])
         boidVector = deque([])
         #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
@@ -1232,7 +1237,6 @@ class Boids(pygame.sprite.Sprite):
         boidsPaths.extend([list(robotPath)])
         print(f'The robot path was the nodes: {list(robotPath)}')
         print(f'The robot movements desired is: {list(pathVector)}\n')
-
 
     def update(self, robots, treadmill, worldGrid):
         '''
@@ -1392,3 +1396,7 @@ class TreadmillItems(pygame.sprite.Sprite):
 
         if self.rect.top > screenSizeHeight:
             self.rect.bottom = 0
+
+def return_all_paths(self):
+
+    return AllPaths

@@ -36,12 +36,12 @@ import pygame
 import heapq
 import random
 import schedule
-import threading
+from pexecute.thread import ThreadLoom
 import concurrent.futures
 from world import settings
 from multiprocessing import Process
 from collections import deque
-from .settings import settingsLaserWorld
+from .settings import settingsIntBigWorld
 
 # GLOBAL VARIABLES
 # LOAD THE PyGAME VETOR2 LIB
@@ -50,25 +50,26 @@ vec = pygame.math.Vector2
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
 #* Horizontal Layout
-create = settingsLaserWorld.LaserTradGridHorizontal()
+create = settingsIntBigWorld.TradGridHorizontal()
 #* Vertical Layout
-#create = settingsLaserWorld.LaserTradGridVertical()
+# create = settingsIntBigWorld.TradGridVertical()
 #* Flying-V Layout
-#create = settingsLaserWorld.LaserFlyingVGrid()
+# create = settingsIntBigWorld.FlyingVGrid()
 #* Fishbone Layout
-#create = settingsLaserWorld.LaserFishboneGrid()
-#* 100x100 Traditional Layout
-#create = settingsLaserWorld.BigWarehouseGrid()
+# create = settingsIntBigWorld.FishboneGrid()
 # LOAD THE COLORS FROM THE SETTINGS
-paint = settingsLaserWorld.Colors()
+paint = settingsIntBigWorld.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
-default = settingsLaserWorld.PygameDefaults()
+default = settingsIntBigWorld.PygameDefaults()
 # CENTER THE GRID TO THE MIDDLE OF THE SCREEN
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 # INIT THE PYGAME MODULE
 pygame.init()
 # INIT THE PYGAME CLOCK
 clock = pygame.time.Clock()
+# SAVE THE PATHS TO CALCULATE MAKESPAN AND
+# SUM OF COSTS
+AllPaths = []
 
 
 class WorldGrid:
@@ -316,6 +317,51 @@ class WorldGrid:
             #? The function will return TRUE anyway, just to add more readability
             return True
 
+    def is_passable(self, node):
+        ''' Define if a Grid Node is passable or if is a obstacle
+
+        Returns:
+
+            True: If the Node is Passable
+            False: If Node is Not Passable
+        '''
+        #* If the node is not in the obstacles vector
+        if node not in self.obstaclesPosition:
+            #* If the node is not in the treadmill vector
+            if node not in treadmillPositionGlobal:
+                #* If the node is not in the workers position vector
+                if node not in workersPositionGlobal:
+                    #* If the node is not in the don't move vector
+                    if node not in dontMoveGlobal:
+                        #* If the node is in the node constraints
+                            if node not in nodesConstraintsGlobal:
+                                # TO USE THE BREATH SEARCH ONLY, USE THE FOLLOWS IFs
+                                #if node not in rechargePositionGlobal
+                                    #if node note in pickupPositionGlobal
+                                #? The function will return TRUE anyway,
+                                #? just to add more readability
+                                return True
+
+    def find_neighbors(self, node):
+        '''
+        Find the node Neighbors filtering the walls and points outside the grid
+
+        Returns:
+
+
+            (neigbors) (filter object): The available neighbors node filtered in the
+                                        Vec2d (PyGame) format
+
+        '''
+        #* The neighbors will be the connections available on that node
+        neighbors = [node + connection for connection in self.allowed_connections]
+        # FILTER THE NEIGHBORS
+        #* Filter the Neigbors points outside the Grid and that are not passable
+        neighbors = filter(self.grid_in_bounds, neighbors)    
+        neighbors = filter(self.is_passable, neighbors)
+        #! DO NOT USE THE PRINT BELLOW! WILL BREAK THE FUNCTION!
+        # print(list(neighbors))
+        return neighbors
     
     def find_all_neighbors(self, node):
         '''
@@ -353,7 +399,7 @@ class WorldGrid:
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.obstacle_img = pygame.image.load(os.path.join(self.icon_dir, 'pod.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.obstacle_img = pygame.transform.scale(self.obstacle_img, (70,70))
+            self.obstacle_img = pygame.transform.scale(self.obstacle_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.obstacle_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.obstacle_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -377,7 +423,7 @@ class WorldGrid:
             self.treadmill_img = pygame.image.load(os.path.join(self.icon_dir,
                                                    'treadmill.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.treadmill_img = pygame.transform.scale(self.treadmill_img, (100,100))
+            self.treadmill_img = pygame.transform.scale(self.treadmill_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.treadmill_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.treadmill_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -403,7 +449,7 @@ class WorldGrid:
             # LOAD THE ROBOT IMG TO THE PYGAME MODULE
             self.worker_img = pygame.image.load(os.path.join(self.icon_dir, 'worker.png')).convert_alpha()
             # SCALE THE IMAGE
-            self.worker_img = pygame.transform.scale(self.worker_img, (50,50))
+            self.worker_img = pygame.transform.scale(self.worker_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.worker_center = ((self.workers_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                   (self.workers_vector.y *cellSizeWidth) + (cellSizeHeight / 2))
@@ -454,7 +500,7 @@ class WorldGrid:
         for recharge_zone in rechargePositionGlobal:
             rect_recharge = pygame.Rect(recharge_zone * cellSizeWidth,
                                         (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_VERMILION, rect_recharge)
+            pygame.draw.rect(screen, paint.COLOR_SOFT_YELLOW, rect_recharge)
             self.recharge_vector = vec(recharge_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
@@ -463,7 +509,7 @@ class WorldGrid:
                                                           'arrow_white.png')).convert_alpha()
             # SCALE THE IMAGE
             self.recharge_img = pygame.transform.scale(self.recharge_img,
-                                                       (30,30))
+                                                       (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.recharge_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.recharge_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -483,7 +529,7 @@ class WorldGrid:
             # Draw a obstacle as a retancle with format of the cell size
             rect_pickup = pygame.Rect(pickup_zone * cellSizeWidth,
                                       (cellSizeWidth-1, cellSizeHeight-1))
-            pygame.draw.rect(screen, paint.COLOR_SOFT_YELLOW, rect_pickup)
+            pygame.draw.rect(screen, paint.COLOR_VERMILION, rect_pickup)
             self.pickup_vector = vec(pickup_zone)
             # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
             self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
@@ -492,7 +538,7 @@ class WorldGrid:
                                                              'arrow_white.png')).convert_alpha()
             # SCALE THE IMAGE
             self.pickup_img = pygame.transform.scale(self.pickup_img,
-                                                             (30,30))
+                                                     (create.CELL_HEIGHT, create.CELL_WIDTH))
             # FILL THE IMAGE WITH THE BLEND MODULE
             self.start_center = ((self.pickup_vector.x * cellSizeWidth) + (cellSizeHeight / 2),
                                 (self.pickup_vector.y * cellSizeWidth) + (cellSizeHeight / 2))
@@ -529,7 +575,7 @@ class WorldGrid:
         # LOAD THE ARROW IMG TO THE PYGAME MODULE
         self.arrow_img = pygame.image.load(os.path.join(self.icon_dir, 'arrow_black.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.arrow_img = pygame.transform.scale(self.arrow_img, (20,20))
+        self.arrow_img = pygame.transform.scale(self.arrow_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # SET ARROW DIRECTIONS
         #* Since the arrow icon is pointing to right we need the arrows in other directions
         self.arrow_point_up = (1,0)
@@ -564,7 +610,7 @@ class WorldGrid:
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.start_img = pygame.image.load(os.path.join(self.icon_dir, 'start.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.start_img = pygame.transform.scale(self.start_img, (50,50))
+        self.start_img = pygame.transform.scale(self.start_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # FILL THE IMAGE WITH THE BLEND MODULE
         self.start_img.fill((255, 0, 0, 255), special_flags = pygame.BLEND_RGBA_MULT)
         self.start_center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
@@ -592,7 +638,7 @@ class WorldGrid:
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.goal_img = pygame.image.load(os.path.join(self.icon_dir, 'goal.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.goal_img = pygame.transform.scale(self.goal_img, (50,50))
+        self.goal_img = pygame.transform.scale(self.goal_img, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # FILL THE IMAGE WITH THE BLEND MODULE
         #self.goal_img.fill(special_flags = pygame.BLEND_RGBA_MULT)
         self.goal_center = ((self.goal.x * cellSizeWidth) + (cellSizeHeight / 2),
@@ -620,6 +666,396 @@ class WorldGrid:
         screen.blit(self.text_surface, self.text_rect)
 
 
+class WeightedGrid(WorldGrid):
+    '''
+    Create a Word Grid in a screen size defined by the user
+    or by default using the cells and the grid size with Inheritance
+    from the WorldGrid Class, creating then a Weighted Graph. The
+    Recharge Zone and the Pickup Zone have more weight than the other
+    nodes, and aren't obstacles.
+
+    Attributes:
+
+     (GRID_WIDTH, GRID_HEIGHT) (tuple)
+     (CELL_WIDTH, CELL_HEIGHT) (tuple)
+     [(OBSTACLE_1_x, OBSTACLE_1_y), ... ,(OBSTACLE_X_x, OBSTACLE_X_y)]     (list)
+     [(RECHARGE_1_x, RECHARGE_1_y), ... ,(RECHARGE_X_x, RECHARGE_X_y)]     (list)
+     [(TREADMILL_1_x, TREADMILL_1_y), ... ,(TREADMILL_X_x, TREADMILL_X_y)] (list)
+     [(WORKERS_1_x, WORKERS_1_y), ... ,(WORKERS_X_x, WORKERS_X_y)]         (list)
+     [(DELIVERY_1_x, DELIVERY_1_y), ... ,(DELIVERY_X_x, DELIVERY_X_y)]     (list)
+     [(PICKUP_1_x, PICKUP_1_y), ... ,(PICKUP_X_x, PICKUP_X_y)]             (list)
+     [(DONT_MOVE_1_x, DONT_MOVE_1_y), ... ,(DONT_MOVE_X_x, DONT_MOVE_X_y)] (list)
+    
+        Where:
+
+            GRID_WIDTH  (int)
+            GRID_HEIGHT (int)
+            CELL_WIDTH  (int)
+            CELL_HEIGHT (int)
+            OBSTACLE_x  (int)
+            OBSTACLE_y  (int)
+            RECHARGE_x  (int)
+            RECHARGE_y  (int)
+            TREADMILL_x (int)
+            TREADMILL_y (int)
+            WORKERS_x   (int)
+            WORKERS_y   (int)
+            DELIVERY_x  (int)
+            DELIVERY_y  (int)
+            PICKUP_x    (int)
+            PICKUP_y    (int)
+            DONT_MOVE_x (int)
+            DONT_MOVE_y (int)
+
+    Args:
+
+        (GRID_WIDTH, GRID_SIZE):          An tuple with the desired GRID size
+        (CELL_WIDTH, CELL_HEIGHT):        An tuple with the desired CELL size
+        (OBSTACLE_X_x, OBSTACLE_X_y):     An tuple with the desired OBSTACLES positions
+        (RECHARGE_X_x, RECHARGE_X_y):     An tuple with the desired RECHARGE positions
+        (TREADMILL_X_x, TREADMILL_X_y):   An tuple with the desired TREADMILL position
+        (WORKERS_X_x, WORKERS_X_y):       An tuple with the desired WORKERS positions
+        (DELIVERY_X_x, DELIVERY_X_y):     An tuple with the desired DELIVERY positions
+        (PICKUP_X_x, WORKERS_X_y):        An tuple with the desired PICKUP positions
+        (DONT_MOVE_X_x, DONT_MOVE_X_y):   An tuple with the desired DON'T MOVE positions
+
+    Vars:
+
+        GRID_WIDTH    = The desired GRID WIDTH
+        GRID_HEIGHT   = The desired GRID HEIGHT
+        CELL_WIDTH    = The desired CELL WIDTH
+        CELL_HEIGHT   = The desired CELL HEIGHT
+        OBSTACLE_X_x  = The OBSTACLE location "X" at Grid pos. X  (column)
+        OBSTACLE_X_y  = The  OBSTACLE location  "X" at Grid in pos. Y (row)
+        RECHARGE_X_x  = The RECHARGE location "X" at Grid pos. X  (column)
+        RECHARGE_X_y  = The RECHARGE location  "X" at Grid in pos. Y (row)
+        TREADMILL_X_x = The TREADMILL location "X" at Grid pos. X  (column)
+        TREADMILL_X_y = The TREADMILL location  "X" at Grid in pos. Y (row)
+        WORKERS_X_x   = The WORKERS location "X" at Grid pos. X  (column)
+        WORKERS_X_y   = The WORKERS location  "X" at Grid in pos. Y (row)
+        DELIVERY_X_x  = The DELIVERY location "X" at Grid pos. X  (column)
+        DELIVERY_X_y  = The DELIVERY  location  "X" at Grid in pos. Y (row)
+        PICKUP_X_x    = The PICKUP location "X" at Grid pos. X (column)
+        PICKUP_X_y    = The PICKUP location  "X" at Grid in pos. Y (row)
+
+    Returns:
+
+        A Weighted Node Grid Graph with Obstacles, Recharge Zone, Treadmill
+        Zone, Workers Zone, Delivery Zone with size e height inputed by the
+        user.
+    '''
+
+    def __init__(self, world_grid_size = (create.GRID_WIDTH, create.GRID_HEIGHT),
+                 world_cell_size = (create.CELL_WIDTH, create.CELL_HEIGHT),
+                 world_obstacles_positions = create.OBSTACLES,
+                 world_recharge_positions = create.RECHARGE_ZONE,
+                 world_treadmill_positions = create.TREADMILL_ZONE,
+                 world_workers_positions = create.WORKERS_POS,
+                 world_delivery_positions = create.DELIVERY_ZONE,
+                 world_pickup_positions = create.PICKUP_ZONE,
+                 world_dont_move = create.DONT_MOVE,
+                 world_nodes_constraints = create.NODES_CONSTRAINTS):
+ 
+        super().__init__()
+        # CREATE A DIC TO SAVE THE NODE WEIGHTS
+        self.weights = {}
+        # CREATE WEIGHTS FOR THE RECHARGE ZONE
+        for Recharge in self.world_recharge_position:
+            self.weights[Recharge] = 40
+        # CREATE WEIGHTS FOR THE PICKUP ZONE
+        for Pickup in self.world_pickup_positions:
+            self.weights[Pickup] = 40
+
+    # COST FUNCTION
+    def cost(self, from_node, to_node):
+        '''
+        The cost function responsible to put weights at each grid cell
+        node.
+
+        Args:
+
+            from_node (tuple)
+            to_node (tuple)
+        
+        Vars:
+
+            from_node: A tuple with the actual node cell position (X,Y)
+            to_node: A tuple with the desired node cell position (X,Y)
+
+
+        Returns:
+
+            The cell node weighted in 10 if moving horizontal/vertical
+            and 14 if moving diagonal
+        '''
+        #* If the move is horizontal or vertical the cost is 1
+        #? Uses the Length Squared function of PyGame to return the
+        #? Euclidean length of the vector
+        if (vec(to_node) - vec(from_node)).length_squared() == 1:
+            #* Multiply to 10 to work only with integers
+            return self.weights.get(to_node, 0) + 10
+        #* If the move is diagonal, the cost is 1.4 (diagonal move in squares)
+        else:
+            #* Multiply to 10 to work only with integers
+            return self.weights.get(to_node, 0) + 14
+
+
+class PriorityQueue:
+    '''
+    Class responsible to create de Priority Queue using the heapq
+    library to elaborate the path planning algorithm based on the
+    cells with lower cost values
+
+    '''
+    def __init__(self):
+        #* Init with a empty list of nodes
+        self.nodes = []
+    
+    def put(self, node, cost):
+        '''
+        Function responsible to insert a node with a cost to the
+        searched nodes
+
+        Args:
+
+            node (tuple)
+            cost (int)
+        
+        Vars:
+
+            node: A tuple with the actual node cell position (X,Y)
+            cost: A integer with the actual cell cost value
+
+
+        Returns:
+
+            The cell node weighted in 10 if moving horizontal/vertical
+            and 14 if moving diagonal inserted to the heapq node list
+        '''
+        #* Put the nodes and the cost at the Heap Queue
+        heapq.heappush(self.nodes, (cost, node))
+    
+    def get(self):
+        '''
+        Function responsible to get a node with his cost
+
+        Returns:
+
+            The cell node cost
+        '''
+        #* Get the node in the Priority Queue
+        return heapq.heappop(self.nodes)[1]
+
+    def empty(self):
+        '''
+        Function responsible to check if the search is finished
+        and that's no more frontier nodes available
+
+        Returns:
+
+            True if the search finishes
+        '''
+        #* Check if the search ends
+        return len(self.nodes) == 0
+
+global allPathsVectors, allRobotsPaths, temporaryPath
+allPathsVectors = deque([])
+allRobotsPaths = deque([])
+temporaryPath = deque()
+
+class MultiRobot(pygame.sprite.Sprite):
+    '''
+    Adjust the Robots Icons and draw in the Grid as a Sprite
+
+    Args:
+
+        start (vector2d):  The Robot start node position (X , Y)
+                           in the Vector2d PyGame format
+        goal (vector2d):   The Robot goal position (X, Y) in the
+                           Vector2d PyGame format
+        path (vector2d):   The Shortest Path the robot will run
+        robot_count (int): The atual robot number
+
+    Returns:
+
+        The Robot icon translated to the PyGame Library and Draw
+        at the specified START location
+    '''
+    # The Sprite for the Robots
+
+    def __init__(self, start, goal, path):
+        self.loom = ThreadLoom(max_runner_cap=create.ROBOTS_QTD)
+        pygame.sprite.Sprite.__init__(self)
+        print("\n__________________ STARTING A NEW ROBOT __________________\n")  
+        # THE MULTI ROBOT VARIABLES
+        self.start = start
+        self.start_pos = (int(start.x), int(start.y))
+        self.goal_pos = goal
+        self.path = path
+        print(f'Robot Start Position: {self.start}')
+        print(f'Robot Goal Position: {self.goal_pos}')
+        print(f'Robot Path: {self.path}')
+        # THE DIRECTORY WERE THE ROBOT IMG FILE IS LOCATED
+        self.icon_dir = os.path.join(os.path.dirname(__file__), '../icons')
+        # LOAD THE ROBOT IMG TO THE PYGAME MODULE
+        self.image = pygame.image.load(os.path.join(self.icon_dir, 'robot.png')).convert_alpha()
+        # SCALE THE IMAGE
+        self.image = pygame.transform.scale(self.image, (create.CELL_HEIGHT, create.CELL_WIDTH))
+        # DRAWS A RECTANGLE FOR THE FIGURE
+        self.rect = self.image.get_rect()
+        # FILL THE IMAGE WITH THE BLEND MODULE
+        self.rect.center = ((self.start.x * cellSizeWidth) + (cellSizeHeight / 2),
+                            (self.start.y * cellSizeWidth) + (cellSizeHeight / 2))
+        # SET THE ROTATION
+        self.rotation = 0
+        # BOOLEAN TURN CHECK
+        self.turn_left = False
+        self.turn_right = False
+        self.turn_bottom = False
+        self.turn_top = True
+        # SET the PATH and the PATH VECTOR as Global
+        global robotPath, pathVector
+        robotPath = deque([])
+        pathVector = deque([])
+        #* Where I can travel? In this case LEFT, RIGHT, TOP, BOTTOM
+        self.move_left = vec(1, 0)
+        self.move_bottom = vec(0, 1)
+        self.move_right = vec(-1, 0)
+        self.move_top = vec(0, -1)
+        #self.wait = vec(0, 0)
+        #* Set the Current position on the Node
+        self.current_pos = self.path[(self.start_pos)] + self.start
+        robotPath.extend([self.current_pos])
+        path_vector_start = self.current_pos - self.start
+        pathVector.extend([path_vector_start])
+        while self.current_pos != self.goal_pos:
+            self.path_vector = self.path[(self.current_pos.x, self.current_pos.y)]
+            pathVector.extend([self.path_vector])
+            self.current_pos = self.current_pos + self.path[(int(self.current_pos.x),
+                                                             int(self.current_pos.y))]
+            robotPath.extend([self.current_pos])
+        # PUT THE PATH AND VECTORS AS GLOBAL
+        allPathsVectors.extend([list(pathVector)])
+        allRobotsPaths.extend([list(robotPath)])
+        temporaryPath.append(list(robotPath))
+        global AllPaths
+        AllPaths.append(list(robotPath))
+        print(f'The robot path was the nodes: {list(robotPath)}')
+        print(f'The robot movements desired is: {list(pathVector)}\n')
+
+
+    def update(self, robots, treadmill, worldGrid):
+        '''
+        Update the Robot Location at every Frame when SPACE is Pressed
+
+        Args:
+
+            None
+        
+        Returns:
+
+            The Robot icon translated to the PyGame Library and Draw
+            at the Screen moving to START to GOAL along the shortest
+            path found by the Search Algorithm.
+        '''
+        # INICIO DA INSTANCIA DO RELÓGIO
+        clock = pygame.time.Clock()
+        dt = clock.tick(default.FPS)
+        #* The Robot Paths
+        global robot_path_poped, path_poped
+        robot_path_poped = allRobotsPaths.popleft()
+        print(f'Robot Path: {robot_path_poped}\n')
+        #* The Vector Movement Desired
+        path_poped = allPathsVectors.popleft()
+        print(f'\nRobot Path Movement: {path_poped}')
+
+        def run():
+            pygame.event.clear()
+            path_iterator = iter(robot_path_poped)
+            for vector in path_poped:
+                pygame.event.pump()
+                current_pos = vec(next(path_iterator, 'Goal Reached'))
+                #print(f'\nThe Current Robot Movements is: {vector}')
+                #print(f'The Current Robot Position is: {current_pos}\n')
+                robots.draw(screen)
+                vec_pos = current_pos
+                #* Draws the Area were the Robots look for Boids
+                #pygame.draw.rect(screen, paint.COLOR_GREEN, [(vec_pos.x-2)*100,
+                                #(vec_pos.y-2)*100, 500, 500], 0)
+                #* Move to Left
+                if (vector.x == self.move_left.x) and (vector.y == self.move_left.y):
+                    #pygame.event.clear()
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_left:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, -90)
+                        self.turn_left = True
+                        self.turn_right = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
+                    else:
+                        self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
+                #* Move to Right
+                elif (vector.x == self.move_right.x) and (vector.y == self.move_right.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_right:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.x += create.MAX_VELOCITY
+                        #pygame.display.flip()
+                    else:
+                        self.rect.x -= create.MAX_VELOCITY
+                        #pygame.display.flip()
+
+                #* Move to Top
+                elif (vector.x == self.move_top.x) and (vector.y == self.move_top.y):
+                    #* Checks if the Turn was alredy Made
+                    if not self.turn_top:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 90)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = False
+                        self.turn_top = True
+                        #* Now move
+                        self.rect.y -= create.MAX_VELOCITY
+                        #pygame.display.flip()
+                    else:
+                        self.rect.y -= create.MAX_VELOCITY
+                        #pygame.display.flip()
+
+                #* Move to Bottom
+                else:
+                    if not self.turn_bottom:
+                        #* If not rotate
+                        self.image = pygame.transform.rotate(self.image, 180)
+                        self.turn_right = True
+                        self.turn_left = False
+                        self.turn_bottom = True
+                        self.turn_top = False
+                        #* Now move
+                        self.rect.y += create.MAX_VELOCITY
+                        #pygame.display.flip()
+                    else:
+                        self.rect.y += create.MAX_VELOCITY
+                        #pygame.display.flip()
+                #pygame.display.flip()
+                time.sleep(3) # 3 DEU BOM
+
+        # RUN THREADED
+        thread = concurrent.futures.ThreadPoolExecutor()
+        thread.submit(run)
+
+
 class TreadmillItems(pygame.sprite.Sprite):
     '''
     Adjust the Treadmill Items and draw in the Grid as a Sprite
@@ -634,7 +1070,7 @@ class TreadmillItems(pygame.sprite.Sprite):
         at the specified START location
     '''
     # The Sprite for the Robots
-    def __init__(self, items_start=(11,0)):
+    def __init__(self, items_start=create.GRID_WIDTH-1):
 
         pygame.sprite.Sprite.__init__(self)
     
@@ -645,7 +1081,7 @@ class TreadmillItems(pygame.sprite.Sprite):
         # LOAD THE ROBOT IMG TO THE PYGAME MODULE
         self.image = pygame.image.load(os.path.join(self.icon_dir, 'box.png')).convert_alpha()
         # SCALE THE IMAGE
-        self.image = pygame.transform.scale(self.image, (50,50))
+        self.image = pygame.transform.scale(self.image, (create.CELL_HEIGHT, create.CELL_WIDTH))
         # DRAWS A RECTANGLE FOR THE FIGURE
         self.rect = self.image.get_rect()
         # FILL THE IMAGE WITH THE BLEND MODULE
@@ -658,3 +1094,8 @@ class TreadmillItems(pygame.sprite.Sprite):
 
         if self.rect.top > screenSizeHeight:
             self.rect.bottom = 0
+
+
+def return_all_paths(self):
+
+    return AllPaths

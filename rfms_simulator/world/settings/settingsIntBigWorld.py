@@ -65,9 +65,9 @@ class TradGridHorizontal(object):
         #* SET the DEFAULT TIME Start and Limit
         self.TIME_LIMIT = 10000
         # #* SET the DEFAULT Grid Width
-        self.GRID_WIDTH = 100
+        self.GRID_WIDTH = 100 # 100
         # #* SET the DEFAULT Grid Height
-        self.GRID_HEIGHT = 50
+        self.GRID_HEIGHT = 50 # 50
         # #* SET the DEFAULT Width and Height of the Grid Cells
         self.CELL_WIDTH = 20
         self.CELL_HEIGHT = 20
