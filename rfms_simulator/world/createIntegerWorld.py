@@ -35,8 +35,6 @@ import time
 import pygame
 import heapq
 import random
-import schedule
-from pexecute.thread import ThreadLoom
 import concurrent.futures
 from world import settings
 from multiprocessing import Process

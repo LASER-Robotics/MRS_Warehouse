@@ -35,8 +35,6 @@ import random
 import timeit
 import concurrent.futures
 import memory_profiler
-import pandas as pd
-import numpy as np
 from operator import itemgetter
 #? Using the collections module since is the most efficient
 #? to implement and manipulate a queue list
