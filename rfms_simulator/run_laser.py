@@ -125,7 +125,7 @@ class PathPlanning:
         # PRINT ALL THE VISITED NODES
         global allNodes
         allNodes = len(self.visited)
-        print(f'\nThe Node Cells Available are: {self.visited}')
+        print(f'\nThe All Node Cells Available are:\n{self.visited}')
         return self.visited
 
     def find_free_space(self, graph, goal=world.GOAL):
@@ -645,6 +645,8 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
         free_space = planning.find_free_space(newWorld, robot_goal)
         #* Init the Robot in a Random Position
         random_start = random.choice(free_space)
+        #* Init the Robot in a Random Position
+        random_start = random.choice(free_space)
         if vec_to_int(random_start) in SelectedStarts:
             change_start = vec_to_int(random_start)             
             while change_start in SelectedStarts:
@@ -680,7 +682,7 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
         atual_temporary_path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
         #* Run the Paths and Add The Robots
         robot =  createWorld.MultiRobot(random_start, robot_goal, atual_temporary_path)
-
+        #*TODO: TO HERE
         pretended_path = vec_to_list(atual_temporary_path)
         print(f'Pretended Path: {pretended_path}')
         for path_compared in ReservationTable:
@@ -703,15 +705,22 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
                         #newWorld = createWorld.WeightedGrid()
                         #* Use the Find the Free Spaces Available
                         free_space = planning.find_free_space(newWorld, robot_goal)
-                        # #* Init the Robot in a Random Position
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        if vec_to_int(random_start) in SelectedStarts:
+                            change_start = vec_to_int(random_start)             
+                            while change_start in SelectedStarts:
+                                change_start = vec_to_int(random.choice(free_space))
+                            random_start = vec(change_start)
                         SelectedStarts.add(vec_to_int(random_start))
                         #* Run the Path Planning Algorithm
                         path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
                         #*TODO: TO HERE
                         #* Run the Paths and Add The Robots
-                        # DesiredPaths.append(path)
+                        DesiredPaths.append(path)
                         robot =  createWorld.MultiRobot(random_start, robot_goal, path)
-                        #robot_sprites.add(robot)
                 else:
                     if (indexes_path_compared == indexes_new_path) or (indexes_path_compared[0] == indexes_new_path[1]):
                         print('-------------------------------')
@@ -723,7 +732,15 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
                         #newWorld = createWorld.WeightedGrid()
                         #* Use the Find the Free Spaces Available
                         free_space = planning.find_free_space(newWorld, robot_goal)
-                        # #* Init the Robot in a Random Position
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        #* Init the Robot in a Random Position
+                        random_start = random.choice(free_space)
+                        if vec_to_int(random_start) in SelectedStarts:
+                            change_start = vec_to_int(random_start)             
+                            while change_start in SelectedStarts:
+                                change_start = vec_to_int(random.choice(free_space))
+                            random_start = vec(change_start)
                         SelectedStarts.add(vec_to_int(random_start))
                         #* Run the Path Planning Algorithm
                         path = planning.cooperative_astar_search(newWorld, robot_goal, random_start, time)
@@ -735,7 +752,6 @@ def find_path_collisions(robot_goal, robot_sprites, planning, time):
                 
             robot_sprites.add(robot)
         ReservationTable.append(pretended_path)
-        print(len(ReservationTable))
 
 
 def create_neighboorhood(pos, swarm_key):
