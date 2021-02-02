@@ -735,6 +735,150 @@ def run_swarm(robots_qtd, starts, goals, time, newWorld, planning, all_robots):
 
     print(swarmAreas)
 
+# def run_multiagent_astar(goal=world.GOAL,time=world.TIME_LIMIT,
+#                          robots_qtd=world.ROBOTS_QTD):
+#     """
+#     The Multi-Agent A-Star Search function of the Path Planning Library, is
+#     responsible to run the Weighted World and calculate the shortest path in a
+#     PyGame Screen with the A-Star Algorithm for Multiple Robots
+        
+#     Attributes:
+#         (goal)       (tuple)
+#         (robots_qrd) (int)
+    
+#     Args:
+#         (goal)      : Is the position in the Weighted Grid that
+#                       we want to achieve
+#         (robots_qtd): Is the number of robots with want to run the simulation
+
+#     Returns:
+#        The Shortest Path from the A* Algorithm for multiple robots loaded in a
+#        PyGame Screen with World Inputed by the program or user
+#     """
+#     # CALL THE CLASS WORLD GRID
+#     #* ADJUST HERE THE WORLD YOU WANT
+#     #? IF YOU NEED TO TEST THE WORLD FIRST USE THE "createGrids.py" module
+#     goals = goal
+#     print(f'\nThe Number of Robots Choosen was: {robots_qtd}\n')
+#     newWorld = createBigWorld.WeightedGrid()
+#     planning = PathPlanning()
+#     #* Start the Treadmill Class in a Group
+#     all_treadmill_items = pygame.sprite.Group()
+#     #* Init the treadmill Sprite
+#     treadmill_items = createBigWorld.TreadmillItems()
+#     all_treadmill_items.add(treadmill_items)
+#     #* Add the Robots Sprite Classes to the Groups
+#     all_robots = pygame.sprite.Group()
+#     # SET THE MULTIPLE PATHS
+#     global pathsGlobal, robotsStartPos
+#     pathsGlobal = deque([])
+#     robotsStartPos = deque([])
+#     robot_count = 0
+#     for _ in range(robots_qtd):
+#         robot_count += 1
+#         #* Pop up the Goal
+#         goal_poped = vec(goals.popleft())
+#         #* Use the Find the Free Spaces Available
+#         free_space = planning.find_free_space(newWorld, goal_poped)
+#         #* Init the Robot in a Random Position
+#         random_start = random.choice(free_space)
+#         if vec_to_int(random_start) in SelectedStarts:
+#             change_start = vec_to_int(random_start)             
+#             while change_start in SelectedStarts:
+#                 change_start = vec_to_int(random.choice(free_space))
+#             random_start = vec(change_start)
+#         SelectedStarts.add(vec_to_int(random_start))
+#         #* Run the Path Planning Algorithm
+#         path = planning.astar_search(newWorld, goal_poped, random_start)
+#         #* Run the Paths and Add The Robots
+#         robots =  createBigWorld.MultiRobot(random_start, goal_poped, path)
+#         all_robots.add(robots)
+#     # CREATE A LOOP AND RUN THE WORLD IN A SCREEN CONTINUALLY
+#     # * If still running do the Loop
+#     running = True
+#     global FLAG
+#     FLAG = False
+#     while running:
+#         # ADJUST THE CLOCK
+#         createBigWorld.clock.tick(default.FPS)
+#         # IF THE PYGAME RECEIVES AN EVENT
+#         for event in pygame.event.get():
+#             # IF THE EVENT IS TO QUIT THE APPLICATION
+#             if event.type == pygame.QUIT:
+#                 #* Break the LOOP
+#                 running == False
+#                 #* Shutdown the PyGame
+#                 pygame.quit()
+#                 #* Closes the program and doesn't crete any dialogue
+#                 sys.exit(0)
+#             if event.type == pygame.KEYDOWN:
+#                 if event.key == pygame.K_ESCAPE:
+#                     #* Break the LOOP
+#                     running == False
+#                     #* Shutdown the PyGame
+#                     pygame.quit()
+#                     #* Closes the program and doesn't crete any dialogue
+#                     sys.exit(0)
+#                 if event.key == pygame.K_s:
+#                     # Dump the wall list for saving (if needed)
+#                     #* Use the command to show the actual obstacles values if modified
+#                     print('The obstacle tuples drawn is:\n',
+#                             [(int(loc.x), int(loc.y)) for loc in createBigWorld.obstaclesPositionGlobal])
+#                 if event.key == pygame.K_SPACE:
+#                     #* Run the robot movement simulation
+#                     pygame.event.clear()
+#                     with concurrent.futures.ProcessPoolExecutor() as executor:
+#                        executor.map(all_robots.update(all_robots, all_treadmill_items, newWorld))
+#             # CHECKS IF THERE'S A MOUSE BUTTON EVENT IN THE SCREEN
+#             if event.type == pygame.MOUSEBUTTONDOWN:
+#                 # PICK THE GRID LOCATION WHERE THE MOUSE WAS PUSHED AND STORE
+#                 mouse_pos = vec(pygame.mouse.get_pos())//newWorld.cell_size_width
+#                 # IF THE BUTTON WAS PRESSED
+#                 if event.button == 1:
+#                     # IF THE MOUSE POSITION IS IN THE OBSTACLES TUPLE
+#                     if mouse_pos in newWorld.obstaclesPosition:
+#                         # REMOVE THE OBSTACLE
+#                         newWorld.obstaclesPosition.remove(mouse_pos)
+#                     else:
+#                         # ADD A OBSTACLE
+#                         newWorld.obstaclesPosition.append(mouse_pos)
+#                 # FOR EVERY NEW CLICK  OR OBSTACLE ADD, WE RECALCULATE THE PATH
+#                 #* RIGHT MOUSE TO CHANGE THE GOAL
+#                 if event.button == 3:
+#                     goal_node = mouse_pos
+#                 #path = planning.astar_search(newWorld, goal_node, start_node) 
+#         #pygame.event.pump()
+#         # DRAW THE SCREEN CAPTION DISPLAY WITH FPS
+#         pygame.display.set_caption("World Grid Representation [{:.2f}]".format(createBigWorld.clock.get_fps()))
+#         # FILLS THE SCREEN WITH A BLANK DISPLAY
+#         createBigWorld.screen.fill(paint.COLOR_WHITE)
+#         # UPDATE THE DISPLAY
+#         #* Draw the grid
+#         newWorld.draw_grid()
+#         #* Draw the obstacles
+#         newWorld.draw_obstacles()
+#         #* Draw the Treadmill Zone
+#         newWorld.draw_treadmill_zone()
+#         #* Draw the Workers Zone
+#         newWorld.draw_workers_zone()
+#         #* Draw the Delivery Zone
+#         newWorld.draw_delivery_zone()
+#         #* Draw the Recharge Zone
+#         newWorld.draw_recharge_zone()
+#         #* Draw the Pickup Zone
+#         newWorld.draw_pickup_zone()
+#         #* Draw the Arrows
+#         newWorld.draw_arrows()
+#         #* Draw Don't Move Zone
+#         newWorld.draw_dont_move()
+#         #* Update the Spriters
+#         all_treadmill_items.update()
+#         #* Draw the Spriters in the Grid
+#         all_robots.draw(createBigWorld.screen)
+#         all_treadmill_items.draw(createBigWorld.screen)
+#         #*Update the full display Surface to the screen
+#         #create_swarms_area()
+#         pygame.display.flip()
 
 def run_cbs(start=world.STARTS, goal=world.GOAL,time=world.TIME_LIMIT,
             robots_qtd=world.ROBOTS_QTD):
