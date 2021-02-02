@@ -16,7 +16,7 @@ bandit==1.6.2
 base58==2.0.1
 bcrypt==3.1.7
 black==19.10b0
-bleach==3.1.4
+bleach==3.3.0
 blinker==1.4
 bondpy==1.8.5
 boto3==1.14.33
