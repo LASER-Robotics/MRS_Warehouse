@@ -47,20 +47,49 @@ vec = pygame.math.Vector2
 # LOAD THE WORLD VARIABLES
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
-#* Horizontal Layout
-create = settingsIntBigWorld.TradGridHorizontal()
-#* Vertical Layout
-# create = settingsIntBigWorld.TradGridVertical()
-#* Flying-V Layout
-# create = settingsIntBigWorld.FlyingVGrid()
-#* Fishbone Layout
-# create = settingsIntBigWorld.FishboneGrid()
+# HORIZONTAL LAYOUT
+#* Tiny Horizontal Layout
+# create = settingsIntBigWorld.TinyTradGridHorizontal()
+#* Small Horizontal Layout
+# create = settingsIntBigWorld.SmallTradGridHorizontal()
+#* Medium Horizontal Layout
+# create = settingsIntBigWorld.MediumTradGridHorizontal()
+# * Large Horizontal Layout
+# create = settingsIntBigWorld.LargeTradGridHorizontal()
+
+# VERTICAL LAYOUT
+#* Tiny Vertical Layout
+# create = settingsIntBigWorld.TinyTradGridVertical()
+#* Small Vertical Layout
+# create = settingsIntBigWorld.SmallTradGridVertical()
+#* Medium Vertical Layout
+# create = settingsIntBigWorld.MediumTradGridVertical()
+#* Large Vertical Layout
+# create = settingsIntBigWorld.LargeTradGridVertical()
+
+# FLYING-V LAYOUT
+#* Tiny Flying-V Layout
+# create = settingsIntBigWorld.TinyFlyingVGrid()
+#* Small Flying-V Layout
+# create = settingsIntBigWorld.SmallFlyingVGrid()
+#* Medium Flying-V Layout
+# create = settingsIntBigWorld.MediumFlyingVGrid()
+#* Large Flying-V Layout
+create = settingsIntBigWorld.LargeFlyingVGrid()
+
+# FISHBONE LAYOUT
+#* Tiny Fishbone Layout
+# create = settingsIntBigWorld.TinyFishboneGrid()
+#* Large Fishbone Layout
+# create = settingsIntBigWorld.LargeFishboneGrid()
 # LOAD THE COLORS FROM THE SETTINGS
 paint = settingsIntBigWorld.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
 default = settingsIntBigWorld.PygameDefaults()
 # CENTER THE GRID TO THE MIDDLE OF THE SCREEN
 os.environ['SDL_VIDEO_CENTERED'] = '1'
+# Uses another Audio Driver
+os.environ['SDL_AUDIODRIVER'] = 'dsp'
 # INIT THE PYGAME MODULE
 pygame.init()
 # INIT THE PYGAME CLOCK

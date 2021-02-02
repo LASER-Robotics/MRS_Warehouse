@@ -48,14 +48,36 @@ vec = pygame.math.Vector2
 # LOAD THE WORLD VARIABLES
 #? You can change here the world you want to launch. To create
 #? a new world, just add a new Class to the settings module
-#* Horizontal Layout
-# create = settingsBigWorld.TradGridHorizontal()
-#* Vertical Layout
-create = settingsBigWorld.TradGridVertical()
-#* Flying-V Layout
-# create = settingsBigWorld.FlyingVGrid()
-#* Fishbone Layout
-# create = settingsBigWorld.FishboneGrid()
+# HORIZONTAL LAYOUT
+#* Tiny Horizontal Layout
+# create = settingsBigWorld.TinyTradGridHorizontal()
+#* Small Horizontal Layout
+# create = settingsBigWorld.SmallTradGridHorizontal()
+#* Medium Horizontal Layout
+# create = settingsBigWorld.MediumTradGridHorizontal()
+# * Large Horizontal Layout
+# create = settingsBigWorld.LargeTradGridHorizontal()
+
+# VERTICAL LAYOUT
+#* Tiny Vertical Layout
+# create = settingsBigWorld.TinyTradGridVertical()
+#* Small Vertical Layout
+# create = settingsBigWorld.SmallTradGridVertical()
+#* Medium Vertical Layout
+# create = settingsBigWorld.MediumTradGridVertical()
+#* Large Vertical Layout
+# create = settingsBigWorld.LargeTradGridVertical()
+
+# FLYING-V LAYOUT
+#* Tiny Flying-V Layout
+# create = settingsBigWorld.TinyFlyingVGrid()
+#* Small Flying-V Layout
+# create = settingsBigWorld.SmallFlyingVGrid()
+#* Medium Flying-V Layout
+# create = settingsBigWorld.MediumFlyingVGrid()
+#* Large Flying-V Layout
+create = settingsBigWorld.LargeFlyingVGrid()
+
 # LOAD THE COLORS FROM THE SETTINGS
 paint = settingsBigWorld.Colors()
 # LOAD THE PYGAME DEFAULTS VARIABLES
@@ -1049,6 +1071,7 @@ class MultiRobot(pygame.sprite.Sprite):
                         #pygame.display.flip()
                 #pygame.display.flip()
                 time.sleep(3) # 3 DEU BOM
+                # time.sleep(0.5)
 
         # RUN THREADED
         thread = concurrent.futures.ThreadPoolExecutor()
