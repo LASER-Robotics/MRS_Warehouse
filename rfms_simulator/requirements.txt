@@ -291,7 +291,7 @@ uncompyle6==3.7.3
 Unidecode==1.1.1
 unique-id==1.0.6
 urdfdom-py==0.4.3
-urllib3==1.25.9
+urllib3==1.26.5
 usb-creator==0.3.3
 validators==0.16.0
 virtualenv==20.0.18
