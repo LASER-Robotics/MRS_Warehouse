@@ -144,7 +144,7 @@ packaging==20.3
 pandas==1.0.3
 pandocfilters==1.4.2
 parallel-execute==0.1.0
-paramiko==2.7.1
+paramiko==2.10.1
 parse==1.8.4
 parso==0.7.0
 pathlib2==2.3.5
