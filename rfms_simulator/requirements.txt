@@ -216,7 +216,7 @@ qt-gui==0.4.2
 qt-gui-py-common==0.4.2
 readme-renderer==25.0
 regex==2020.4.4
-reportlab==3.4.0
+reportlab==3.5.55
 requests==2.23.0
 requests-toolbelt==0.9.1
 requests-unixsocket==0.1.5
