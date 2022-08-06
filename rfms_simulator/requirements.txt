@@ -265,7 +265,7 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.4
 stevedore==1.32.0
-streamlit==0.64.0
+streamlit==1.11.1
 system-service==0.3
 systemd-python==234
 tabulate==0.8.7
